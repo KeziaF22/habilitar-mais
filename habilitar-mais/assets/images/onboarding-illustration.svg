@@ -1,0 +1,88 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="roadGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#92A1C2;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#92A1C2;stop-opacity:0.1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Road/Path Background -->
+  <ellipse cx="200" cy="300" rx="180" ry="60" fill="url(#roadGradient)"/>
+  <ellipse cx="200" cy="300" rx="140" ry="40" fill="white" opacity="0.3"/>
+
+  <!-- Road Markings -->
+  <rect x="190" y="260" width="20" height="30" rx="4" fill="white" opacity="0.5"/>
+  <rect x="190" y="310" width="20" height="30" rx="4" fill="white" opacity="0.5"/>
+
+  <!-- Main Car -->
+  <g transform="translate(100, 180)">
+    <!-- Car Shadow -->
+    <ellipse cx="100" cy="95" rx="90" ry="15" fill="#2E365A" opacity="0.2"/>
+
+    <!-- Car Body -->
+    <path d="M30 60 L45 30 L155 30 L170 60 L180 60 L180 85 L10 85 L10 60 Z"
+          fill="#BD6C73"
+          stroke="#2E365A"
+          stroke-width="3"/>
+
+    <!-- Car Windows -->
+    <rect x="55" y="35" width="40" height="25" rx="3" fill="#92A1C2" opacity="0.4"/>
+    <rect x="105" y="35" width="40" height="25" rx="3" fill="#92A1C2" opacity="0.4"/>
+
+    <!-- Car Details -->
+    <line x1="30" y1="60" x2="180" y2="60" stroke="#2E365A" stroke-width="2"/>
+
+    <!-- Wheels -->
+    <g>
+      <circle cx="50" cy="85" r="15" fill="#2E365A"/>
+      <circle cx="50" cy="85" r="10" fill="#6B597F"/>
+      <circle cx="50" cy="85" r="5" fill="white" opacity="0.5"/>
+
+      <circle cx="140" cy="85" r="15" fill="#2E365A"/>
+      <circle cx="140" cy="85" r="10" fill="#6B597F"/>
+      <circle cx="140" cy="85" r="5" fill="white" opacity="0.5"/>
+    </g>
+
+    <!-- Headlight -->
+    <circle cx="175" cy="68" r="6" fill="#A2B69C"/>
+
+    <!-- Driver Icon (simplified) -->
+    <g transform="translate(60, 40)">
+      <circle cx="15" cy="8" r="6" fill="white" opacity="0.8"/>
+      <path d="M15 14 L10 20 L20 20 Z" fill="white" opacity="0.8"/>
+    </g>
+  </g>
+
+  <!-- Connection Icons -->
+  <!-- Student Icon (left) -->
+  <g transform="translate(40, 100)">
+    <circle cx="20" cy="20" r="25" fill="#A2B69C" opacity="0.3"/>
+    <circle cx="20" cy="15" r="8" fill="#A2B69C"/>
+    <path d="M20 23 L10 35 L30 35 Z" fill="#A2B69C"/>
+  </g>
+
+  <!-- Instructor Icon (right) -->
+  <g transform="translate(300, 100)">
+    <circle cx="20" cy="20" r="25" fill="#BD6C73" opacity="0.3"/>
+    <circle cx="20" cy="15" r="8" fill="#BD6C73"/>
+    <path d="M20 23 L10 35 L30 35 Z" fill="#BD6C73"/>
+  </g>
+
+  <!-- Connection Lines -->
+  <path d="M 80 120 Q 120 140, 160 160" stroke="#92A1C2" stroke-width="3" stroke-dasharray="8,4" opacity="0.5"/>
+  <path d="M 300 120 Q 260 140, 240 160" stroke="#92A1C2" stroke-width="3" stroke-dasharray="8,4" opacity="0.5"/>
+
+  <!-- Location Pin Icon (above car) -->
+  <g transform="translate(185, 50)">
+    <path d="M15 0 C8 0 2 6 2 13 C2 23 15 35 15 35 C15 35 28 23 28 13 C28 6 22 0 15 0 Z"
+          fill="#BD6C73"/>
+    <circle cx="15" cy="13" r="5" fill="white"/>
+  </g>
+
+  <!-- Decorative Stars/Sparkles -->
+  <g opacity="0.6">
+    <path d="M50 50 L52 54 L56 56 L52 58 L50 62 L48 58 L44 56 L48 54 Z" fill="#A2B69C"/>
+    <path d="M340 60 L342 64 L346 66 L342 68 L340 72 L338 68 L334 66 L338 64 Z" fill="#BD6C73"/>
+    <path d="M200 20 L202 24 L206 26 L202 28 L200 32 L198 28 L194 26 L198 24 Z" fill="#92A1C2"/>
+  </g>
+</svg>

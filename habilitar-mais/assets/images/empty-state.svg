@@ -1,0 +1,102 @@
+<svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="emptyBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#92A1C2;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#BD6C73;stop-opacity:0.1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Circle -->
+  <circle cx="150" cy="150" r="140" fill="url(#emptyBg)"/>
+  <circle cx="150" cy="150" r="110" fill="white" opacity="0.5"/>
+
+  <!-- Road/Path -->
+  <path d="M 50 200 Q 150 180, 250 200"
+        stroke="#92A1C2"
+        stroke-width="40"
+        fill="none"
+        opacity="0.3"/>
+
+  <!-- Road Dashes -->
+  <path d="M 70 200 L 90 200"
+        stroke="white"
+        stroke-width="6"
+        stroke-linecap="round"
+        opacity="0.6"/>
+  <path d="M 140 195 L 160 195"
+        stroke="white"
+        stroke-width="6"
+        stroke-linecap="round"
+        opacity="0.6"/>
+  <path d="M 210 200 L 230 200"
+        stroke="white"
+        stroke-width="6"
+        stroke-linecap="round"
+        opacity="0.6"/>
+
+  <!-- Sad/Empty Car -->
+  <g transform="translate(95, 100)">
+    <!-- Car Body -->
+    <path d="M15 40 L25 20 L85 20 L95 40 L100 40 L100 55 L10 55 L10 40 Z"
+          fill="#6B597F"
+          opacity="0.5"/>
+
+    <!-- Windows -->
+    <rect x="32" y="24" width="20" height="16" rx="2" fill="white" opacity="0.3"/>
+    <rect x="58" y="24" width="20" height="16" rx="2" fill="white" opacity="0.3"/>
+
+    <!-- Sad Face on Front -->
+    <g transform="translate(85, 30)">
+      <!-- Eyes -->
+      <circle cx="5" cy="5" r="2" fill="#2E365A" opacity="0.5"/>
+      <circle cx="12" cy="5" r="2" fill="#2E365A" opacity="0.5"/>
+      <!-- Sad Mouth -->
+      <path d="M 5 12 Q 8.5 10, 12 12"
+            stroke="#2E365A"
+            stroke-width="1.5"
+            fill="none"
+            opacity="0.5"
+            stroke-linecap="round"/>
+    </g>
+
+    <!-- Wheels -->
+    <circle cx="30" cy="55" r="8" fill="#2E365A" opacity="0.4"/>
+    <circle cx="30" cy="55" r="5" fill="white" opacity="0.3"/>
+    <circle cx="80" cy="55" r="8" fill="#2E365A" opacity="0.4"/>
+    <circle cx="80" cy="55" r="5" fill="white" opacity="0.3"/>
+  </g>
+
+  <!-- Magnifying Glass Icon -->
+  <g transform="translate(180, 140)">
+    <circle cx="20" cy="20" r="18"
+            stroke="#BD6C73"
+            stroke-width="4"
+            fill="none"
+            opacity="0.5"/>
+    <circle cx="20" cy="20" r="12"
+            fill="#BD6C73"
+            opacity="0.1"/>
+    <line x1="32" y1="32" x2="45" y2="45"
+          stroke="#BD6C73"
+          stroke-width="4"
+          stroke-linecap="round"
+          opacity="0.5"/>
+  </g>
+
+  <!-- Decorative Question Mark -->
+  <g transform="translate(60, 70)">
+    <text x="0" y="0"
+          font-family="Arial, sans-serif"
+          font-weight="bold"
+          font-size="30"
+          fill="#A2B69C"
+          opacity="0.3">
+      ?
+    </text>
+  </g>
+
+  <!-- Decorative Dots -->
+  <circle cx="220" cy="80" r="4" fill="#92A1C2" opacity="0.3"/>
+  <circle cx="240" cy="90" r="3" fill="#BD6C73" opacity="0.3"/>
+  <circle cx="230" cy="110" r="5" fill="#A2B69C" opacity="0.3"/>
+</svg>

@@ -1,0 +1,97 @@
+<svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="successGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#A2B69C;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#BD6C73;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Circles with Animation -->
+  <circle cx="150" cy="150" r="140" fill="url(#successGlow)">
+    <animate attributeName="r" from="120" to="140" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" from="0.5" to="0.2" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="150" cy="150" r="100" fill="white" opacity="0.4"/>
+
+  <!-- Large Check Circle -->
+  <circle cx="150" cy="150" r="70" fill="#A2B69C"/>
+  <circle cx="150" cy="150" r="65" fill="white" opacity="0.2"/>
+
+  <!-- Check Mark -->
+  <path d="M 120 150 L 140 170 L 185 120"
+        stroke="white"
+        stroke-width="12"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none">
+    <animate attributeName="stroke-dasharray" from="0,200" to="200,0" dur="0.8s" fill="freeze"/>
+    <animate attributeName="stroke-dashoffset" from="200" to="0" dur="0.8s" fill="freeze"/>
+  </path>
+
+  <!-- Happy Car -->
+  <g transform="translate(85, 200)">
+    <!-- Car Body -->
+    <path d="M15 25 L25 10 L95 10 L105 25 L110 25 L110 38 L10 38 L10 25 Z"
+          fill="#BD6C73"/>
+
+    <!-- Windows -->
+    <rect x="32" y="13" width="22" height="12" rx="2" fill="#92A1C2" opacity="0.4"/>
+    <rect x="62" y="13" width="22" height="12" rx="2" fill="#92A1C2" opacity="0.4"/>
+
+    <!-- Happy Face on Front -->
+    <g transform="translate(95, 17)">
+      <!-- Eyes -->
+      <circle cx="5" cy="4" r="1.5" fill="white"/>
+      <circle cx="12" cy="4" r="1.5" fill="white"/>
+      <!-- Happy Mouth -->
+      <path d="M 5 7 Q 8.5 9, 12 7"
+            stroke="white"
+            stroke-width="1.5"
+            fill="none"
+            stroke-linecap="round"/>
+    </g>
+
+    <!-- Wheels -->
+    <circle cx="30" cy="38" r="8" fill="#2E365A"/>
+    <circle cx="30" cy="38" r="5" fill="#6B597F"/>
+    <circle cx="90" cy="38" r="8" fill="#2E365A"/>
+    <circle cx="90" cy="38" r="5" fill="#6B597F"/>
+
+    <!-- Headlight -->
+    <circle cx="108" cy="28" r="3" fill="#A2B69C"/>
+  </g>
+
+  <!-- Confetti/Celebration Elements -->
+  <g opacity="0.6">
+    <!-- Stars -->
+    <path d="M50 50 L52 56 L58 58 L52 60 L50 66 L48 60 L42 58 L48 56 Z" fill="#BD6C73">
+      <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3s" repeatCount="indefinite"/>
+    </path>
+    <path d="M240 60 L242 66 L248 68 L242 70 L240 76 L238 70 L232 68 L238 66 Z" fill="#A2B69C">
+      <animateTransform attributeName="transform" type="rotate" from="0 240 60" to="360 240 60" dur="4s" repeatCount="indefinite"/>
+    </path>
+    <path d="M250 200 L252 206 L258 208 L252 210 L250 216 L248 210 L242 208 L248 206 Z" fill="#92A1C2">
+      <animateTransform attributeName="transform" type="rotate" from="0 250 200" to="360 250 200" dur="3.5s" repeatCount="indefinite"/>
+    </path>
+
+    <!-- Small Circles -->
+    <circle cx="70" cy="80" r="5" fill="#A2B69C">
+      <animate attributeName="cy" from="80" to="70" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" from="0.6" to="0" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="220" cy="90" r="4" fill="#BD6C73">
+      <animate attributeName="cy" from="90" to="80" dur="1.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" from="0.6" to="0" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="50" cy="180" r="6" fill="#92A1C2">
+      <animate attributeName="cy" from="180" to="170" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" from="0.6" to="0" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Pulse Ring Animation -->
+  <circle cx="150" cy="150" r="70" fill="none" stroke="#A2B69C" stroke-width="2" opacity="0">
+    <animate attributeName="r" from="70" to="90" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" from="0.5" to="0" dur="2s" repeatCount="indefinite"/>
+  </circle>
+</svg>

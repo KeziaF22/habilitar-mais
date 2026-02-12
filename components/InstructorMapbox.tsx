@@ -26,9 +26,13 @@ export default function InstructorMapbox({
     <View style={styles.container}>
       <MapView
         style={styles.map}
-        styleURL="mapbox://styles/mapbox/light-v11" // Estilo minimalista claro
+        styleURL="mapbox://styles/mapbox/streets-v12"
         logoEnabled={false}
         attributionEnabled={false}
+        scaleBarEnabled={false}
+        compassEnabled={false}
+        pitchEnabled={false}
+        rotateEnabled={false}
       >
         <Camera
           zoomLevel={12}
@@ -82,11 +86,13 @@ export default function InstructorMapbox({
 
 const styles = StyleSheet.create({
   container: {
-    height: 280,
+    height: 250,
     width: '100%',
     overflow: 'hidden',
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 16,
+    borderWidth: 2,
+    borderColor: Colors.light.brandContainer,
   },
   map: {
     flex: 1,
@@ -105,26 +111,28 @@ const styles = StyleSheet.create({
   },
   priceMarker: {
     backgroundColor: Colors.light.surface,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 2,
-    borderColor: Colors.light.primary,
-    shadowColor: Colors.light.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    borderRadius: 24,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 3,
+    borderColor: Colors.light.success,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
   },
   priceMarkerSelected: {
-    backgroundColor: Colors.light.primary,
-    borderColor: Colors.light.error,
+    backgroundColor: Colors.light.brand,
+    borderColor: Colors.light.accent,
     borderWidth: 3,
+    transform: [{ scale: 1.15 }],
   },
   priceText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: Colors.light.primary,
+    color: Colors.light.success,
+    letterSpacing: 0.3,
   },
   priceTextSelected: {
     color: Colors.light.surface,

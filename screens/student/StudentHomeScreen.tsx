@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { FlatList, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Search } from 'lucide-react-native';
 import { useAuth, Instructor } from '@/context/AuthContext';
@@ -8,6 +9,8 @@ import { StudentStackParamList } from '@/navigation/types';
 import InstructorCard from '@/components/InstructorCard';
 import EmptyState from '@/components/EmptyState';
 import Logo from '@/components/Logo';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Only import map on native platforms
 let InstructorMapbox: any = null;
@@ -70,7 +73,7 @@ export default function StudentHomeScreen({ navigation }: Props) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -175,7 +178,7 @@ export default function StudentHomeScreen({ navigation }: Props) {
           ListEmptyComponent={renderEmptyState}
         />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -215,10 +218,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.light.surface,
-    marginHorizontal: 16,
+    marginHorizontal: Math.max(12, SCREEN_WIDTH * 0.04),
     marginTop: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.light.brandContainer,
@@ -226,7 +229,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: 8,
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.light.textPrimary,
   },
   mapContainer: {
@@ -244,7 +247,7 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     borderRadius: 20,
     backgroundColor: Colors.light.surface,
     borderWidth: 1,
@@ -257,7 +260,7 @@ const styles = StyleSheet.create({
   filterButtonText: {
     color: Colors.light.textPrimary,
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
   },
   filterButtonTextActive: {
     color: Colors.light.surface,

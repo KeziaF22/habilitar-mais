@@ -1,8 +1,10 @@
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
 import { MapPin, Star } from 'lucide-react-native';
 import { Instructor } from '@/context/AuthContext';
 import Colors from '@/constants/Colors';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface InstructorCardProps {
   instructor: Instructor;
@@ -66,8 +68,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.light.surface,
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    padding: Math.max(12, SCREEN_WIDTH * 0.04),
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -83,16 +85,19 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     marginRight: 12,
+    flexShrink: 0,
   },
   content: {
     flex: 1,
     justifyContent: 'space-between',
+    minWidth: 0, // Permite que textos longos sejam cortados corretamente
   },
   name: {
     fontSize: 16,
     fontWeight: 'bold',
     color: Colors.light.textPrimary,
     marginBottom: 4,
+    flexShrink: 1, // Permite que o texto encolha se necessário
   },
   category: {
     fontSize: 13,
@@ -108,6 +113,7 @@ const styles = StyleSheet.create({
   location: {
     fontSize: 12,
     color: Colors.light.textSecondary,
+    flexShrink: 1,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -122,9 +128,11 @@ const styles = StyleSheet.create({
   priceContainer: {
     alignItems: 'flex-end',
     justifyContent: 'flex-start',
+    marginLeft: 8,
+    flexShrink: 0, // Preço nunca encolhe
   },
   price: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: Colors.light.success,
   },
@@ -133,17 +141,18 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     lineHeight: 18,
     marginBottom: 12,
+    flexShrink: 1,
   },
   button: {
     backgroundColor: Colors.light.success,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     borderRadius: 10,
     alignItems: 'center',
   },
   buttonText: {
     color: Colors.light.surface,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 'bold',
   },
 });

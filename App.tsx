@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import LoginScreen from '@/screens/LoginScreen';
 import SignupScreen from '@/screens/SignupScreen';
 import OnboardingScreen from '@/screens/OnboardingScreen';
+import StudentProfileCompletionScreen from '@/screens/StudentProfileCompletionScreen';
 import StudentHomeScreen from '@/screens/student/StudentHomeScreen';
 import InstructorDetailScreen from '@/screens/student/InstructorDetailScreen';
 import StudentCheckoutScreen from '@/screens/student/StudentCheckoutScreen';
@@ -199,11 +200,21 @@ function InstructorTabNavigator() {
   );
 }
 
-type AuthScreen = 'login' | 'signup' | 'onboarding';
+type AuthScreen = 'login' | 'signup';
 
 function RootNavigator() {
-  const { userRole, isLoading, updateStudentInfo, currentStudent } = useAuth();
+  const {
+    userRole,
+    isLoading,
+    signupStage,
+    setSignupStage,
+    signup,
+    login,
+    completeStudentProfile,
+    completeInstructorProfile,
+  } = useAuth();
   const [authScreen, setAuthScreen] = React.useState<AuthScreen>('login');
+  const [pendingName, setPendingName] = React.useState('');
 
   if (isLoading) {
     return (
@@ -213,26 +224,58 @@ function RootNavigator() {
     );
   }
 
+  // Signup stage: choose role (after signup or login with incomplete profile)
+  if (signupStage === 'choose_role') {
+    return (
+      <OnboardingScreen
+        onRoleSelected={(role) => {
+          if (role === 'student') {
+            setSignupStage('complete_student');
+          } else {
+            setSignupStage('complete_instructor');
+          }
+        }}
+      />
+    );
+  }
+
+  // Signup stage: complete student profile
+  if (signupStage === 'complete_student') {
+    return (
+      <StudentProfileCompletionScreen
+        studentName={pendingName}
+        onComplete={() => completeStudentProfile()}
+      />
+    );
+  }
+
+  // Signup stage: complete instructor profile
+  if (signupStage === 'complete_instructor') {
+    return (
+      <InstructorSignupScreen
+        onComplete={(data) => completeInstructorProfile(data)}
+      />
+    );
+  }
+
+  // Not logged in - show login/signup
   if (!userRole) {
     if (authScreen === 'signup') {
       return (
         <SignupScreen
-          onSignupComplete={(data) => {
-            updateStudentInfo({ name: data.name, email: data.email, phone: data.phone });
-            setAuthScreen('onboarding');
+          onSignupComplete={async (data) => {
+            setPendingName(data.name);
+            await signup(data);
           }}
           onBackToLogin={() => setAuthScreen('login')}
         />
       );
     }
 
-    if (authScreen === 'onboarding') {
-      return <OnboardingScreen />;
-    }
-
     return (
       <LoginScreen
         onSignup={() => setAuthScreen('signup')}
+        onLogin={login}
       />
     );
   }

@@ -12,42 +12,40 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
-import { useAuth } from '@/context/AuthContext';
 import Colors from '@/constants/Colors';
-import Logo from '@/components/Logo';
 import AppCarIcon from '@/components/AppCarIcon';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 interface LoginScreenProps {
   onSignup?: () => void;
+  onLogin?: (email: string, password: string) => Promise<boolean>;
 }
 
-export default function LoginScreen({ onSignup }: LoginScreenProps) {
-  const { setUserRole } = useAuth();
+export default function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      setErrorMessage('Preencha e-mail e senha.');
+      return;
+    }
+    setErrorMessage('');
     setIsLoading(true);
-
-    // Simulate login - replace with real authentication
-    setTimeout(() => {
-      setIsLoading(false);
-      // For demo, any email/password will work
-      // You can add role detection logic here based on email
-      if (email.includes('instrutor') || email.includes('instructor')) {
-        setUserRole('instructor');
-      } else {
-        setUserRole('student');
+    try {
+      const success = onLogin ? await onLogin(email.trim(), password) : false;
+      if (!success) {
+        setErrorMessage('E-mail ou senha incorretos.');
       }
-    }, 1000);
-  };
-
-  const handleSkipToOnboarding = () => {
-    setUserRole(null); // Reset to show onboarding
+    } catch {
+      setErrorMessage('Erro ao fazer login. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -132,6 +130,11 @@ export default function LoginScreen({ onSignup }: LoginScreenProps) {
               </View>
             </View>
 
+            {/* Error Message */}
+            {errorMessage ? (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
+
             {/* Forgot Password */}
             <TouchableOpacity style={styles.forgotPassword}>
               <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
@@ -159,28 +162,20 @@ export default function LoginScreen({ onSignup }: LoginScreenProps) {
             {/* Sign Up Link */}
             <View style={styles.signupContainer}>
               <Text style={styles.signupText}>Não tem uma conta?</Text>
-              <TouchableOpacity onPress={onSignup || handleSkipToOnboarding}>
+              <TouchableOpacity onPress={onSignup}>
                 <Text style={styles.signupLink}> Cadastre-se</Text>
               </TouchableOpacity>
             </View>
 
             {/* Demo Hint */}
             <View style={styles.demoHint}>
-              <Text style={styles.demoHintText}>💡 Demo: Use qualquer e-mail/senha</Text>
+              <Text style={styles.demoHintText}>Contas demo:</Text>
               <Text style={styles.demoHintText}>
-                E-mail com "instrutor" → Área do Instrutor
+                Aluno: joao@email.com / 123456
               </Text>
-              <Text style={styles.demoHintText}>Outros e-mails → Área do Aluno</Text>
+              <Text style={styles.demoHintText}>Instrutor: instrutor@email.com / 123456</Text>
             </View>
           </View>
-
-          {/* Footer */}
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={handleSkipToOnboarding}
-          >
-            <Text style={styles.skipButtonText}>Pular para seleção de perfil</Text>
-          </TouchableOpacity>
         </ScrollView>
       </LinearGradient>
     </KeyboardAvoidingView>
@@ -274,6 +269,12 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 8,
   },
+  errorText: {
+    fontSize: 14,
+    color: Colors.light.error,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
   forgotPassword: {
     alignSelf: 'flex-end',
     marginBottom: 20,
@@ -342,15 +343,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.light.textSecondary,
     textAlign: 'center',
-  },
-  skipButton: {
-    marginTop: 20,
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  skipButtonText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textDecorationLine: 'underline',
   },
 });

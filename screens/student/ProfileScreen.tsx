@@ -14,7 +14,7 @@ export default function ProfileScreen() {
     appointments,
     instructors,
     favoriteInstructorIds,
-    setUserRole,
+    logout,
   } = useAuth();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -60,7 +60,7 @@ export default function ProfileScreen() {
       {
         text: 'Sair',
         style: 'destructive',
-        onPress: () => setUserRole(null),
+        onPress: () => logout(),
       },
     ]);
   };

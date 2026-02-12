@@ -1,4 +1,5 @@
 import { SQLiteDatabase } from 'expo-sqlite';
+import { simpleHash } from '@/utils/hash';
 
 export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
   const count = await db.getFirstAsync<{ cnt: number }>(
@@ -139,5 +140,17 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
     for (const loc of locations) {
       await db.runAsync('INSERT INTO locations (name) VALUES (?)', [loc]);
     }
+
+    // --- Demo Users ---
+    await db.runAsync(
+      `INSERT INTO users (id, email, password_hash, role, student_id, instructor_id)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      ['user-demo-student', 'joao@email.com', simpleHash('123456'), 'student', 'stud1', null]
+    );
+    await db.runAsync(
+      `INSERT INTO users (id, email, password_hash, role, student_id, instructor_id)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      ['user-demo-instructor', 'instrutor@email.com', simpleHash('123456'), 'instructor', null, 'inst1']
+    );
   });
 }

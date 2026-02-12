@@ -1,6 +1,6 @@
 import { SQLiteDatabase } from 'expo-sqlite';
 
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const CREATE_TABLES = `
 CREATE TABLE IF NOT EXISTS instructors (
@@ -77,6 +77,18 @@ CREATE TABLE IF NOT EXISTS db_meta (
   key TEXT PRIMARY KEY NOT NULL,
   value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT CHECK (role IN ('student', 'instructor')),
+  student_id TEXT,
+  instructor_id TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (student_id) REFERENCES students(id),
+  FOREIGN KEY (instructor_id) REFERENCES instructors(id)
+);
 `;
 
 export async function initializeSchema(db: SQLiteDatabase): Promise<void> {
@@ -89,8 +101,28 @@ export async function initializeSchema(db: SQLiteDatabase): Promise<void> {
   );
   const currentVersion = row ? parseInt(row.value, 10) : 0;
 
-  if (currentVersion < DB_VERSION) {
+  if (currentVersion < 1) {
     await db.execAsync(CREATE_TABLES);
+  }
+
+  // Migration v1 -> v2: add users table
+  if (currentVersion >= 1 && currentVersion < 2) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        role TEXT CHECK (role IN ('student', 'instructor')),
+        student_id TEXT,
+        instructor_id TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (student_id) REFERENCES students(id),
+        FOREIGN KEY (instructor_id) REFERENCES instructors(id)
+      );
+    `);
+  }
+
+  if (currentVersion < DB_VERSION) {
     await db.runAsync(
       'INSERT OR REPLACE INTO db_meta (key, value) VALUES (?, ?)',
       ['version', String(DB_VERSION)]

@@ -9,6 +9,8 @@ import * as AddressRepo from '@/database/repositories/savedAddressRepository';
 import * as FavoriteRepo from '@/database/repositories/favoriteRepository';
 import * as LocationRepo from '@/database/repositories/locationRepository';
 import * as SettingsRepo from '@/database/repositories/settingsRepository';
+import * as UserRepo from '@/database/repositories/userRepository';
+import { simpleHash } from '@/utils/hash';
 
 // --- Type Definitions ---
 export type Instructor = {
@@ -53,8 +55,8 @@ export type Appointment = {
   id: string;
   studentId: string;
   instructorId: string;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:MM
+  date: string;
+  time: string;
   location: string;
   status: 'Pendente' | 'Aceita' | 'Recusada';
   price: number;
@@ -65,12 +67,25 @@ export type Appointment = {
   totalPrice?: number;
 };
 
+export type InstructorProfileData = {
+  fullName: string;
+  cpf: string;
+  cnh: string;
+  hasEAR: boolean;
+  carModel: string;
+  year: string;
+  transmission: 'Manual' | 'Auto';
+};
+
+export type SignupStage = 'idle' | 'choose_role' | 'complete_student' | 'complete_instructor';
+
 // --- Context Definition ---
 export type UserRole = 'student' | 'instructor' | null;
 
 interface AuthContextType {
   isLoading: boolean;
   userRole: UserRole;
+  signupStage: SignupStage;
   currentStudent: Student;
   currentInstructor: Instructor | null;
   students: Student[];
@@ -80,10 +95,17 @@ interface AuthContextType {
   savedAddresses: SavedAddress[];
   favoriteInstructorIds: string[];
   setUserRole: (role: UserRole) => void;
+  setSignupStage: (stage: SignupStage) => void;
+  signup: (data: { name: string; email: string; phone: string; password: string }) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  completeStudentProfile: () => Promise<void>;
+  completeInstructorProfile: (data: InstructorProfileData) => Promise<void>;
   addAppointment: (appointment: Omit<Appointment, 'id' | 'status'>) => void;
   updateAppointmentStatus: (id: string, status: 'Aceita' | 'Recusada') => void;
   toggleFavorite: (instructorId: string) => void;
   updateStudentInfo: (updates: Partial<Student>) => void;
+  updateInstructorInfo: (updates: Partial<Instructor>) => void;
   addSavedAddress: (address: Omit<SavedAddress, 'id'>) => void;
   removeSavedAddress: (id: string) => void;
 }
@@ -99,6 +121,11 @@ function generateId(prefix: string): string {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRoleState] = useState<UserRole>(null);
+  const [signupStage, setSignupStage] = useState<SignupStage>('idle');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [pendingSignupData, setPendingSignupData] = useState<{
+    name: string; email: string; phone: string;
+  } | null>(null);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -114,12 +141,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     (async () => {
       try {
-        // Initialize DB schema and seed
         const db = await getDatabase();
         await initializeSchema(db);
         await seedDatabase(db);
 
-        // Load all data in parallel
         const [
           dbInstructors,
           dbStudents,
@@ -127,6 +152,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           dbAddresses,
           dbLocations,
           dbRole,
+          dbUserId,
         ] = await Promise.all([
           InstructorRepo.getAllInstructors(),
           StudentRepo.getAllStudents(),
@@ -134,6 +160,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           AddressRepo.getAllSavedAddresses(),
           LocationRepo.getAllLocations(),
           SettingsRepo.getSetting('userRole'),
+          SettingsRepo.getSetting('currentUserId'),
         ]);
 
         if (!mounted) return;
@@ -144,16 +171,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setSavedAddresses(dbAddresses);
         setLocations(dbLocations);
 
-        if (dbStudents.length > 0) setCurrentStudent(dbStudents[0]);
-        if (dbInstructors.length > 0) setCurrentInstructor(dbInstructors[0]);
+        // Load the correct user based on stored userId
+        let loadedStudent: Student | null = null;
+        let loadedInstructor: Instructor | null = null;
+
+        if (dbUserId) {
+          setCurrentUserId(dbUserId);
+          const user = await UserRepo.getUserById(dbUserId);
+          if (user) {
+            if (user.role === 'student' && user.student_id) {
+              loadedStudent = await StudentRepo.getStudentById(user.student_id);
+            } else if (user.role === 'instructor' && user.instructor_id) {
+              loadedInstructor = await InstructorRepo.getInstructorById(user.instructor_id);
+            }
+          }
+        }
+
+        if (loadedStudent) {
+          setCurrentStudent(loadedStudent);
+        } else if (dbStudents.length > 0) {
+          setCurrentStudent(dbStudents[0]);
+        }
+
+        if (loadedInstructor) {
+          setCurrentInstructor(loadedInstructor);
+        } else if (dbInstructors.length > 0) {
+          setCurrentInstructor(dbInstructors[0]);
+        }
 
         if (dbRole === 'student' || dbRole === 'instructor') {
           setUserRoleState(dbRole);
         }
 
         // Load favorites for current student
-        if (dbStudents.length > 0) {
-          const favIds = await FavoriteRepo.getFavoriteInstructorIds(dbStudents[0].id);
+        const studentForFavorites = loadedStudent || (dbStudents.length > 0 ? dbStudents[0] : null);
+        if (studentForFavorites) {
+          const favIds = await FavoriteRepo.getFavoriteInstructorIds(studentForFavorites.id);
           if (mounted) setFavoriteInstructorIds(favIds);
         }
       } catch (error) {
@@ -172,6 +225,130 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUserRoleState(role);
     SettingsRepo.setSetting('userRole', role).catch(console.error);
   }, []);
+
+  const signup = useCallback(async (data: {
+    name: string; email: string; phone: string; password: string;
+  }) => {
+    const existingUser = await UserRepo.getUserByEmail(data.email);
+    if (existingUser) {
+      throw new Error('Este e-mail já está cadastrado.');
+    }
+
+    const userId = generateId('user');
+    const passwordHash = simpleHash(data.password);
+
+    await UserRepo.createUser({
+      id: userId,
+      email: data.email,
+      password_hash: passwordHash,
+      role: null,
+      student_id: null,
+      instructor_id: null,
+    });
+
+    setCurrentUserId(userId);
+    await SettingsRepo.setSetting('currentUserId', userId);
+
+    setPendingSignupData({ name: data.name, email: data.email, phone: data.phone });
+    setSignupStage('choose_role');
+  }, []);
+
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    const user = await UserRepo.getUserByEmail(email);
+    if (!user) return false;
+
+    if (user.password_hash !== simpleHash(password)) return false;
+
+    setCurrentUserId(user.id);
+    await SettingsRepo.setSetting('currentUserId', user.id);
+
+    if (user.role === 'student' && user.student_id) {
+      const student = await StudentRepo.getStudentById(user.student_id);
+      if (student) setCurrentStudent(student);
+      setUserRoleState('student');
+      await SettingsRepo.setSetting('userRole', 'student');
+      setSignupStage('idle');
+    } else if (user.role === 'instructor' && user.instructor_id) {
+      const instructor = await InstructorRepo.getInstructorById(user.instructor_id);
+      if (instructor) setCurrentInstructor(instructor);
+      setUserRoleState('instructor');
+      await SettingsRepo.setSetting('userRole', 'instructor');
+      setSignupStage('idle');
+    } else {
+      setSignupStage('choose_role');
+    }
+
+    return true;
+  }, []);
+
+  const logout = useCallback(() => {
+    setUserRoleState(null);
+    setCurrentUserId(null);
+    setSignupStage('idle');
+    setPendingSignupData(null);
+    setCurrentStudent({ id: '', name: '' });
+    setCurrentInstructor(null);
+    SettingsRepo.setSetting('userRole', null).catch(console.error);
+    SettingsRepo.setSetting('currentUserId', null).catch(console.error);
+  }, []);
+
+  const completeStudentProfile = useCallback(async () => {
+    if (!currentUserId || !pendingSignupData) return;
+
+    const studentId = generateId('stud');
+    const newStudent: Student = {
+      id: studentId,
+      name: pendingSignupData.name,
+      email: pendingSignupData.email,
+      phone: pendingSignupData.phone,
+    };
+
+    await StudentRepo.addStudent(newStudent);
+    await UserRepo.updateUserRole(currentUserId, 'student', studentId);
+
+    setCurrentStudent(newStudent);
+    setStudents(prev => [...prev, newStudent]);
+    setUserRoleState('student');
+    setSignupStage('idle');
+    setPendingSignupData(null);
+
+    await SettingsRepo.setSetting('userRole', 'student');
+  }, [currentUserId, pendingSignupData]);
+
+  const completeInstructorProfile = useCallback(async (data: InstructorProfileData) => {
+    if (!currentUserId || !pendingSignupData) return;
+
+    const instructorId = generateId('inst');
+    const newInstructor: Instructor = {
+      id: instructorId,
+      name: data.fullName || pendingSignupData.name,
+      car: data.carModel,
+      carImage: '',
+      rating: 0,
+      pricePerHour: 0,
+      transmission: data.transmission,
+      bio: '',
+      reviews: [],
+      availability: [],
+      profileImage: '',
+      coverImage: '',
+      specialties: [],
+      isAvailable: false,
+      location: '',
+      coordinates: { latitude: 0, longitude: 0 },
+    };
+
+    await InstructorRepo.addInstructor(newInstructor);
+    await UserRepo.updateUserRole(currentUserId, 'instructor', instructorId);
+
+    setCurrentInstructor(newInstructor);
+    setInstructors(prev => [...prev, newInstructor]);
+    setUserRoleState('instructor');
+    setSignupStage('idle');
+    setPendingSignupData(null);
+
+    await SettingsRepo.setSetting('userRole', 'instructor');
+  }, [currentUserId, pendingSignupData]);
 
   const addAppointment = useCallback((newAppointment: Omit<Appointment, 'id' | 'status'>) => {
     const appointment: Appointment = {
@@ -203,8 +380,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateStudentInfo = useCallback((updates: Partial<Student>) => {
     setCurrentStudent((prev) => ({ ...prev, ...updates }));
-    StudentRepo.updateStudent(currentStudent.id, updates).catch(console.error);
+    if (currentStudent.id) {
+      StudentRepo.updateStudent(currentStudent.id, updates).catch(console.error);
+    }
   }, [currentStudent.id]);
+
+  const updateInstructorInfo = useCallback((updates: Partial<Instructor>) => {
+    setCurrentInstructor(prev => prev ? { ...prev, ...updates } : prev);
+    if (currentInstructor?.id) {
+      InstructorRepo.updateInstructor(currentInstructor.id, updates).catch(console.error);
+    }
+  }, [currentInstructor?.id]);
 
   const addSavedAddress = useCallback((address: Omit<SavedAddress, 'id'>) => {
     const newAddress: SavedAddress = {
@@ -223,6 +409,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const value = {
     isLoading,
     userRole,
+    signupStage,
     currentStudent,
     currentInstructor,
     students,
@@ -232,10 +419,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     savedAddresses,
     favoriteInstructorIds,
     setUserRole,
+    setSignupStage,
+    signup,
+    login,
+    logout,
+    completeStudentProfile,
+    completeInstructorProfile,
     addAppointment,
     updateAppointmentStatus,
     toggleFavorite,
     updateStudentInfo,
+    updateInstructorInfo,
     addSavedAddress,
     removeSavedAddress,
   };

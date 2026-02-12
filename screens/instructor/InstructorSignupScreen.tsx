@@ -18,7 +18,19 @@ import DocumentUpload from '@/components/DocumentUpload';
 
 type Step = 1 | 2 | 3;
 
-export default function InstructorSignupScreen() {
+interface InstructorSignupScreenProps {
+  onComplete?: (data: {
+    fullName: string;
+    cpf: string;
+    cnh: string;
+    hasEAR: boolean;
+    carModel: string;
+    year: string;
+    transmission: 'Manual' | 'Auto';
+  }) => void;
+}
+
+export default function InstructorSignupScreen({ onComplete }: InstructorSignupScreenProps) {
   const [currentStep, setCurrentStep] = useState<Step>(1);
 
   // Step 1 - Personal Data
@@ -65,11 +77,23 @@ export default function InstructorSignupScreen() {
         Alert.alert('Erro', 'Por favor, envie todos os documentos obrigatórios.');
         return;
       }
-      Alert.alert(
-        'Sucesso!',
-        'Documentos enviados para análise. Você receberá um retorno em até 48 horas.',
-        [{ text: 'OK' }]
-      );
+      if (onComplete) {
+        onComplete({
+          fullName,
+          cpf,
+          cnh,
+          hasEAR,
+          carModel,
+          year,
+          transmission: transmission === 'Automático' ? 'Auto' : 'Manual',
+        });
+      } else {
+        Alert.alert(
+          'Sucesso!',
+          'Documentos enviados para análise. Você receberá um retorno em até 48 horas.',
+          [{ text: 'OK' }]
+        );
+      }
     }
   };
 

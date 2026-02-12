@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import Colors from '@/constants/Colors';
 
 export default function InstructorProfileScreen() {
-  const { currentInstructor, setUserRole } = useAuth();
+  const { currentInstructor, logout, updateInstructorInfo } = useAuth();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(currentInstructor?.name || '');
@@ -21,7 +21,7 @@ export default function InstructorProfileScreen() {
   }
 
   const handleSaveProfile = () => {
-    // Aqui você pode adicionar a lógica para atualizar o perfil do instrutor
+    updateInstructorInfo({ name: editedName, bio: editedBio });
     setIsEditing(false);
     Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
   };
@@ -38,7 +38,7 @@ export default function InstructorProfileScreen() {
       {
         text: 'Sair',
         style: 'destructive',
-        onPress: () => setUserRole(null),
+        onPress: () => logout(),
       },
     ]);
   };

@@ -19,7 +19,7 @@ import AppCarIcon from '@/components/AppCarIcon';
 const { height } = Dimensions.get('window');
 
 interface SignupScreenProps {
-  onSignupComplete: (data: { name: string; email: string; phone: string }) => void;
+  onSignupComplete: (data: { name: string; email: string; phone: string; password: string }) => void;
   onBackToLogin: () => void;
 }
 
@@ -62,7 +62,7 @@ export default function SignupScreen({ onSignupComplete, onBackToLogin }: Signup
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      onSignupComplete({ name: name.trim(), email: email.trim(), phone: phone.trim() });
+      onSignupComplete({ name: name.trim(), email: email.trim(), phone: phone.trim(), password });
     }, 800);
   };
 

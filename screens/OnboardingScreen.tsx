@@ -9,7 +9,11 @@ import AppCarIcon from '@/components/AppCarIcon';
 
 const { width, height } = Dimensions.get('window');
 
-export default function OnboardingScreen() {
+interface OnboardingScreenProps {
+  onRoleSelected?: (role: 'student' | 'instructor') => void;
+}
+
+export default function OnboardingScreen({ onRoleSelected }: OnboardingScreenProps) {
   const { setUserRole } = useAuth();
 
   return (
@@ -42,7 +46,7 @@ export default function OnboardingScreen() {
           {/* Student Button */}
           <TouchableOpacity
             style={[styles.button, styles.studentButton]}
-            onPress={() => setUserRole('student')}
+            onPress={() => onRoleSelected ? onRoleSelected('student') : setUserRole('student')}
             activeOpacity={0.8}
           >
             <View style={styles.buttonIconContainer}>
@@ -57,7 +61,7 @@ export default function OnboardingScreen() {
           {/* Instructor Button */}
           <TouchableOpacity
             style={[styles.button, styles.instructorButton]}
-            onPress={() => setUserRole('instructor')}
+            onPress={() => onRoleSelected ? onRoleSelected('instructor') : setUserRole('instructor')}
             activeOpacity={0.8}
           >
             <View style={styles.buttonIconContainer}>

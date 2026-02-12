@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "habilitar-mais",
-    "slug": "habilitar-mais",
-    "owner": "shockwave",
+    "slug": "Habilitar+",
+    "owner": "KeziaFrazao",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -10,8 +10,8 @@
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "resizeMode": "cover",
+      "backgroundColor": "#2563EB"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -23,7 +23,7 @@
       "package": "com.habilitarmais.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#2563EB"
       }
     },
     "web": {
@@ -38,7 +38,8 @@
           "locationAlwaysAndWhenInUsePermission": "Permitir que o app use sua localização."
         }
       ],
-      "@rnmapbox/maps"
+      "@rnmapbox/maps",
+      "expo-sqlite"
     ]
   }
 }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Switch, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { DollarSign, Car, Star } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import Colors from '@/constants/Colors';
@@ -56,7 +57,8 @@ export default function InstructorHomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
         <View>
@@ -122,6 +124,7 @@ export default function InstructorHomeScreen() {
         />
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 

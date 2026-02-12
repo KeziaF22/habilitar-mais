@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { FlatList, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Search } from 'lucide-react-native';
+import { Search, X } from 'lucide-react-native';
 import { useAuth, Instructor } from '@/context/AuthContext';
 import Colors from '@/constants/Colors';
 import { StudentStackParamList } from '@/navigation/types';
@@ -50,6 +50,26 @@ export default function StudentHomeScreen({ navigation }: Props) {
     return result;
   }, [searchQuery, filter, priceFilter, instructors]);
 
+  // Compute map focus coordinate based on search query matching a neighborhood
+  const mapFocusCoordinate = useMemo((): [number, number] | null => {
+    if (!searchQuery) return null;
+
+    const query = searchQuery.toLowerCase();
+    // Find the first instructor whose location matches the search query
+    const matchingInstructor = instructors.find(
+      (i) => i.location.toLowerCase().includes(query)
+    );
+
+    if (matchingInstructor) {
+      return [
+        matchingInstructor.coordinates.longitude,
+        matchingInstructor.coordinates.latitude,
+      ];
+    }
+
+    return null;
+  }, [searchQuery, instructors]);
+
   const renderInstructorCard = ({ item }: { item: Instructor }) => (
     <InstructorCard
       instructor={item}
@@ -87,14 +107,19 @@ export default function StudentHomeScreen({ navigation }: Props) {
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <Search size={20} color={Colors.light.textSecondary} />
+          <Search size={20} color="#2563EB" />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar por nome, bairro..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor={Colors.light.textSecondary}
+            placeholderTextColor={Colors.light.textTertiary}
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearch}>
+              <X size={18} color={Colors.light.textSecondary} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Map - Only on mobile platforms */}
@@ -103,7 +128,11 @@ export default function StudentHomeScreen({ navigation }: Props) {
             <InstructorMapbox
               instructors={filteredInstructors}
               selectedInstructorId={selectedInstructorId}
-              onInstructorPress={(id: string) => setSelectedInstructorId(id)}
+              onInstructorPress={(id: string) => setSelectedInstructorId(
+                selectedInstructorId === id ? null : id
+              )}
+              onViewProfile={(id: string) => navigation.navigate('InstructorDetail', { id })}
+              focusCoordinate={mapFocusCoordinate}
             />
           </View>
         )}
@@ -198,13 +227,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  logo: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.light.brand,
-  },
   banner: {
-    backgroundColor: Colors.light.brand,
+    backgroundColor: '#2563EB',
     paddingVertical: 20,
     paddingHorizontal: 20,
     alignItems: 'center',
@@ -212,7 +236,7 @@ const styles = StyleSheet.create({
   bannerText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.light.surface,
+    color: '#FFFFFF',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -220,17 +244,25 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.surface,
     marginHorizontal: Math.max(12, SCREEN_WIDTH * 0.04),
     marginTop: 16,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.light.brandContainer,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(37, 99, 235, 0.2)',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: 10,
     fontSize: 15,
     color: Colors.light.textPrimary,
+  },
+  clearSearch: {
+    padding: 4,
   },
   mapContainer: {
     marginHorizontal: 16,
@@ -247,15 +279,15 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     borderRadius: 20,
     backgroundColor: Colors.light.surface,
-    borderWidth: 1,
-    borderColor: Colors.light.background,
+    borderWidth: 1.5,
+    borderColor: Colors.light.border,
   },
   filterButtonActive: {
-    backgroundColor: Colors.light.brand,
-    borderColor: Colors.light.brand,
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
   },
   filterButtonText: {
     color: Colors.light.textPrimary,
@@ -263,11 +295,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   filterButtonTextActive: {
-    color: Colors.light.surface,
+    color: '#FFFFFF',
   },
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 20,
+    paddingBottom: 8,
   },
 });

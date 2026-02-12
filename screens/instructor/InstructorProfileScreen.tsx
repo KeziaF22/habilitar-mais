@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Car, Edit2, LogOut, Mail, MapPin, Phone, Star, User } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import Colors from '@/constants/Colors';
@@ -43,7 +44,8 @@ export default function InstructorProfileScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       {/* Header with Cover and Profile Image */}
       <View style={styles.coverContainer}>
         <Image source={{ uri: currentInstructor.coverImage }} style={styles.coverImage} />
@@ -160,6 +162,7 @@ export default function InstructorProfileScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -361,7 +364,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     marginTop: 16,
-    marginBottom: 40,
+    marginBottom: 20,
     borderWidth: 2,
     borderColor: Colors.light.error,
   },

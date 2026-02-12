@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, Edit2, LogOut, Mail, MapPin, Phone, Star, Trash2, User } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import Colors from '@/constants/Colors';
@@ -93,7 +94,8 @@ export default function ProfileScreen() {
   }, [appointments, currentStudent.id, instructors]);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
@@ -220,6 +222,7 @@ export default function ProfileScreen() {
         <Text style={styles.logoutButtonText}>Sair</Text>
       </TouchableOpacity>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -436,7 +439,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: Colors.light.surface,
     marginHorizontal: 20,
-    marginBottom: 40,
+    marginBottom: 20,
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,

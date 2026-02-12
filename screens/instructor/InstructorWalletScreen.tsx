@@ -1,11 +1,12 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Wallet } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
 
 export default function InstructorWalletScreen() {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
           <Wallet size={64} color={Colors.light.success} strokeWidth={1.5} />
@@ -16,7 +17,7 @@ export default function InstructorWalletScreen() {
         </Text>
         <Text style={styles.comingSoon}>Em breve! 💰</Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

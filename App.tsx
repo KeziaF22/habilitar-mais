@@ -1,4 +1,5 @@
-﻿import React from 'react';
+import React from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -9,6 +10,7 @@ import { Search, Calendar, Heart, User, Home, Wallet } from 'lucide-react-native
 import Colors from '@/constants/Colors';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import LoginScreen from '@/screens/LoginScreen';
+import SignupScreen from '@/screens/SignupScreen';
 import OnboardingScreen from '@/screens/OnboardingScreen';
 import StudentHomeScreen from '@/screens/student/StudentHomeScreen';
 import InstructorDetailScreen from '@/screens/student/InstructorDetailScreen';
@@ -83,7 +85,6 @@ function StudentTabNavigator() {
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
           height: 64 + (insets.bottom > 0 ? insets.bottom : 0),
-          position: 'absolute',
           elevation: 8,
           shadowColor: Colors.light.shadow,
           shadowOffset: { width: 0, height: -2 },
@@ -149,7 +150,6 @@ function InstructorTabNavigator() {
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
           height: 64 + (insets.bottom > 0 ? insets.bottom : 0),
-          position: 'absolute',
           elevation: 8,
           shadowColor: Colors.light.shadow,
           shadowOffset: { width: 0, height: -2 },
@@ -199,17 +199,42 @@ function InstructorTabNavigator() {
   );
 }
 
-function RootNavigator() {
-  const { userRole } = useAuth();
-  const [showLogin, setShowLogin] = React.useState(true);
+type AuthScreen = 'login' | 'signup' | 'onboarding';
 
-  // For demo: show LoginScreen first, then Onboarding if no role selected
-  if (showLogin && !userRole) {
-    return <LoginScreen />;
+function RootNavigator() {
+  const { userRole, isLoading, updateStudentInfo, currentStudent } = useAuth();
+  const [authScreen, setAuthScreen] = React.useState<AuthScreen>('login');
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.light.background }}>
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+      </View>
+    );
   }
 
   if (!userRole) {
-    return <OnboardingScreen />;
+    if (authScreen === 'signup') {
+      return (
+        <SignupScreen
+          onSignupComplete={(data) => {
+            updateStudentInfo({ name: data.name, email: data.email, phone: data.phone });
+            setAuthScreen('onboarding');
+          }}
+          onBackToLogin={() => setAuthScreen('login')}
+        />
+      );
+    }
+
+    if (authScreen === 'onboarding') {
+      return <OnboardingScreen />;
+    }
+
+    return (
+      <LoginScreen
+        onSignup={() => setAuthScreen('signup')}
+      />
+    );
   }
 
   return userRole === 'student' ? <StudentTabNavigator /> : <InstructorTabNavigator />;

@@ -1,10 +1,11 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Car, GraduationCap } from 'lucide-react-native';
+import { GraduationCap } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import Colors from '@/constants/Colors';
 import OnboardingIllustration from '@/components/OnboardingIllustration';
+import AppCarIcon from '@/components/AppCarIcon';
 
 const { width, height } = Dimensions.get('window');
 
@@ -13,7 +14,7 @@ export default function OnboardingScreen() {
 
   return (
     <LinearGradient
-      colors={[Colors.light.navy, Colors.light.purple, Colors.light.periwinkle]}
+      colors={[Colors.light.primary, Colors.light.primaryDark, '#1D4ED8']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
@@ -21,7 +22,7 @@ export default function OnboardingScreen() {
       {/* Header Section */}
       <View style={styles.headerSection}>
         <View style={styles.logoContainer}>
-          <Car size={60} color={Colors.light.rose} strokeWidth={2} />
+          <AppCarIcon size={60} useGradient={false} color="#FFFFFF" showPlus />
         </View>
         <Text style={styles.appName}>Habilitar+</Text>
         <Text style={styles.tagline}>Conectando alunos a instrutores de direção</Text>
@@ -60,7 +61,7 @@ export default function OnboardingScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.buttonIconContainer}>
-              <Car size={28} color={Colors.light.surface} strokeWidth={2.5} />
+              <AppCarIcon size={28} useGradient={false} color="#FFFFFF" />
             </View>
             <View style={styles.buttonContent}>
               <Text style={styles.buttonTitle}>Sou Instrutor</Text>
@@ -168,10 +169,10 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   studentButton: {
-    backgroundColor: Colors.light.rose, // #BD6C73
+    backgroundColor: Colors.light.success,
   },
   instructorButton: {
-    backgroundColor: Colors.light.sage, // #A2B69C
+    backgroundColor: Colors.light.primary,
   },
   buttonIconContainer: {
     width: 56,

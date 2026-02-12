@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth, Appointment } from '@/context/AuthContext';
@@ -57,7 +58,7 @@ export default function InstructorAgendaScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {instructorsPendingAppointments.length > 0 ? (
         <FlatList
           data={instructorsPendingAppointments}
@@ -78,7 +79,7 @@ export default function InstructorAgendaScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

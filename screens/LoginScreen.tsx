@@ -11,14 +11,19 @@ import {
   Dimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Car, Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import Colors from '@/constants/Colors';
 import Logo from '@/components/Logo';
+import AppCarIcon from '@/components/AppCarIcon';
 
 const { width, height } = Dimensions.get('window');
 
-export default function LoginScreen() {
+interface LoginScreenProps {
+  onSignup?: () => void;
+}
+
+export default function LoginScreen({ onSignup }: LoginScreenProps) {
   const { setUserRole } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -62,7 +67,7 @@ export default function LoginScreen() {
           {/* Logo Section */}
           <View style={styles.logoSection}>
             <View style={styles.logoCircle}>
-              <Car size={48} color={Colors.light.surface} strokeWidth={2} />
+              <AppCarIcon size={48} useGradient={false} color="#FFFFFF" showPlus />
             </View>
             <Text style={styles.appName}>Habilitar+</Text>
             <Text style={styles.tagline}>Conectando alunos a instrutores</Text>
@@ -154,7 +159,7 @@ export default function LoginScreen() {
             {/* Sign Up Link */}
             <View style={styles.signupContainer}>
               <Text style={styles.signupText}>Não tem uma conta?</Text>
-              <TouchableOpacity onPress={handleSkipToOnboarding}>
+              <TouchableOpacity onPress={onSignup || handleSkipToOnboarding}>
                 <Text style={styles.signupLink}> Cadastre-se</Text>
               </TouchableOpacity>
             </View>

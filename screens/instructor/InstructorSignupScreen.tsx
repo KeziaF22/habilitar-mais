@@ -9,6 +9,7 @@ import {
   Switch,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { SelectList } from 'react-native-dropdown-select-list';
 import { ChevronLeft } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
@@ -296,7 +297,7 @@ export default function InstructorSignupScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         {currentStep > 1 && (
@@ -337,7 +338,7 @@ export default function InstructorSignupScreen() {
           <Text style={styles.nextButtonText}>{getButtonText()}</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

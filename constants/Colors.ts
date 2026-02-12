@@ -60,10 +60,8 @@ export default {
   },
   dark: {
     ...HabilitarColors, // Spread all Habilitar+ colors for direct access
-    // For simplicity in MVP, dark theme will mostly mirror light,
-    // but in a real app, these would be distinct dark mode colors.
     text: HabilitarColors.surface,
-    background: '#121212', // Dark background
+    background: '#121212',
     tint: HabilitarColors.brand,
     tabIconDefault: HabilitarColors.textSecondary,
     tabIconSelected: HabilitarColors.brand,

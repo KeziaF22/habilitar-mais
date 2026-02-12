@@ -1,4 +1,14 @@
-﻿import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { getDatabase } from '@/database/connection';
+import { initializeSchema } from '@/database/schema';
+import { seedDatabase } from '@/database/seed';
+import * as InstructorRepo from '@/database/repositories/instructorRepository';
+import * as StudentRepo from '@/database/repositories/studentRepository';
+import * as AppointmentRepo from '@/database/repositories/appointmentRepository';
+import * as AddressRepo from '@/database/repositories/savedAddressRepository';
+import * as FavoriteRepo from '@/database/repositories/favoriteRepository';
+import * as LocationRepo from '@/database/repositories/locationRepository';
+import * as SettingsRepo from '@/database/repositories/settingsRepository';
 
 // --- Type Definitions ---
 export type Instructor = {
@@ -55,120 +65,11 @@ export type Appointment = {
   totalPrice?: number;
 };
 
-// --- Mock Data (Manaus, AM) ---
-const mockInstructors: Instructor[] = [
-  {
-    id: 'inst1',
-    name: 'Carlos Santos',
-    car: 'Honda City',
-    carImage: 'https://via.placeholder.com/150/2962FF/FFFFFF?text=Honda+City',
-    rating: 4.8,
-    pricePerHour: 80.0,
-    transmission: 'Auto',
-    bio: 'Instrutor experiente com foco em direção defensiva e segurança.',
-    reviews: [
-      { student: 'João Paulo', comment: 'Ótimo instrutor! Muito paciente.', rating: 5 },
-      { student: 'Maria Silva', comment: 'Me ajudou muito a perder o medo.', rating: 4 },
-    ],
-    availability: [
-      { day: 'Seg', time: '09:00' },
-      { day: 'Seg', time: '10:00' },
-      { day: 'Ter', time: '14:00' },
-      { day: 'Ter', time: '15:00' },
-    ],
-    profileImage: 'https://ui-avatars.com/api/?name=Carlos+Santos&background=2962FF&color=fff&size=200',
-    coverImage: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=600&h=300&fit=crop',
-    specialties: ['Direção Defensiva', 'Estacionamento', 'Baliza'],
-    isAvailable: true,
-    location: 'Jardins',
-    coordinates: {
-      latitude: -3.1150,
-      longitude: -60.0250,
-    },
-  },
-  {
-    id: 'inst2',
-    name: 'Ana Costa',
-    car: 'Hyundai HB20',
-    carImage: 'https://via.placeholder.com/150/00C853/FFFFFF?text=Hyundai+HB20',
-    rating: 4.9,
-    pricePerHour: 75.0,
-    transmission: 'Manual',
-    bio: 'Especialista em baliza e direção em trânsito intenso. Habilitada para ensinar.',
-    reviews: [
-      { student: 'Pedro Lima', comment: 'A Ana é super didática, recomendo!', rating: 5 },
-      { student: 'Bruna Alves', comment: 'Pontual e muito atenciosa.', rating: 5 },
-    ],
-    availability: [
-      { day: 'Qua', time: '08:00' },
-      { day: 'Qua', time: '09:00' },
-      { day: 'Qui', time: '16:00' },
-      { day: 'Qui', time: '17:00' },
-    ],
-    profileImage: 'https://ui-avatars.com/api/?name=Ana+Costa&background=00C853&color=fff&size=200',
-    coverImage: 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?w=600&h=300&fit=crop',
-    specialties: ['Baliza', 'Trânsito Intenso', 'Câmbio Manual', 'Direção Urbana'],
-    isAvailable: false,
-    location: 'Centro',
-    coordinates: {
-      latitude: -3.1300,
-      longitude: -60.0200,
-    },
-  },
-  {
-    id: 'inst3',
-    name: 'Marcos Oliveira',
-    car: 'Chevrolet Onix',
-    carImage: 'https://via.placeholder.com/150/2962FF/FFFFFF?text=Chevrolet+Onix',
-    rating: 4.7,
-    pricePerHour: 85.0,
-    transmission: 'Auto',
-    bio: 'Foco na praticidade e confiança do aluno ao volante.',
-    reviews: [
-      { student: 'Julia Mendes', comment: 'O Marcos me deu muita segurança.', rating: 4 },
-      { student: 'Lucas Pereira', comment: 'Boa experiência de aprendizado.', rating: 5 },
-    ],
-    availability: [
-      { day: 'Sex', time: '10:00' },
-      { day: 'Sex', time: '11:00' },
-      { day: 'Sab', time: '08:00' },
-      { day: 'Sab', time: '09:00' },
-    ],
-    profileImage: 'https://ui-avatars.com/api/?name=Marcos+Oliveira&background=FFA000&color=fff&size=200',
-    coverImage: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&h=300&fit=crop',
-    specialties: ['Primeira Habilitação', 'Confiança ao Volante', 'Rodovias'],
-    isAvailable: true,
-    location: 'Ponta Negra',
-    coordinates: {
-      latitude: -3.0800,
-      longitude: -60.1100,
-    },
-  },
-];
-
-const mockStudents: Student[] = [
-  { id: 'stud1', name: 'João Paulo', email: 'joao@email.com', phone: '(92) 99999-9999' },
-  { id: 'stud2', name: 'Maria Silva', email: 'maria@email.com', phone: '(92) 98888-8888' },
-  { id: 'stud3', name: 'Pedro Lima', email: 'pedro@email.com', phone: '(92) 97777-7777' },
-];
-
-const mockLocations = [
-  'Ponta Negra, Manaus',
-  'Vieiralves, Manaus',
-  'Cidade Nova, Manaus',
-  'Adrianópolis, Manaus',
-  'Parque 10 de Novembro, Manaus',
-];
-
-const mockSavedAddresses: SavedAddress[] = [
-  { id: 'addr1', label: 'Casa', street: 'Rua Ponta Negra, 123', neighborhood: 'Ponta Negra' },
-  { id: 'addr2', label: 'Trabalho', street: 'Av. Djalma Batista, 456', neighborhood: 'Flores' },
-];
-
 // --- Context Definition ---
-type UserRole = 'student' | 'instructor' | null;
+export type UserRole = 'student' | 'instructor' | null;
 
 interface AuthContextType {
+  isLoading: boolean;
   userRole: UserRole;
   currentStudent: Student;
   currentInstructor: Instructor | null;
@@ -189,31 +90,107 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function generateId(prefix: string): string {
+  const random = Math.random().toString(36).substring(2, 7);
+  return `${prefix}-${Date.now()}-${random}`;
+}
+
 // --- Auth Provider Component ---
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [userRole, setUserRole] = useState<UserRole>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRoleState] = useState<UserRole>(null);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [currentStudent, setCurrentStudent] = useState<Student>(mockStudents[0]);
-  const [currentInstructor, setCurrentInstructor] = useState<Instructor | null>(mockInstructors[0]);
-  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>(mockSavedAddresses);
+  const [currentStudent, setCurrentStudent] = useState<Student>({ id: '', name: '' });
+  const [currentInstructor, setCurrentInstructor] = useState<Instructor | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [favoriteInstructorIds, setFavoriteInstructorIds] = useState<string[]>([]);
+  const [locations, setLocations] = useState<string[]>([]);
 
-  const addAppointment = (newAppointment: Omit<Appointment, 'id' | 'status'>) => {
-    const appointmentWithId: Appointment = {
+  // Initialize database and load all data
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        // Initialize DB schema and seed
+        const db = await getDatabase();
+        await initializeSchema(db);
+        await seedDatabase(db);
+
+        // Load all data in parallel
+        const [
+          dbInstructors,
+          dbStudents,
+          dbAppointments,
+          dbAddresses,
+          dbLocations,
+          dbRole,
+        ] = await Promise.all([
+          InstructorRepo.getAllInstructors(),
+          StudentRepo.getAllStudents(),
+          AppointmentRepo.getAllAppointments(),
+          AddressRepo.getAllSavedAddresses(),
+          LocationRepo.getAllLocations(),
+          SettingsRepo.getSetting('userRole'),
+        ]);
+
+        if (!mounted) return;
+
+        setInstructors(dbInstructors);
+        setStudents(dbStudents);
+        setAppointments(dbAppointments);
+        setSavedAddresses(dbAddresses);
+        setLocations(dbLocations);
+
+        if (dbStudents.length > 0) setCurrentStudent(dbStudents[0]);
+        if (dbInstructors.length > 0) setCurrentInstructor(dbInstructors[0]);
+
+        if (dbRole === 'student' || dbRole === 'instructor') {
+          setUserRoleState(dbRole);
+        }
+
+        // Load favorites for current student
+        if (dbStudents.length > 0) {
+          const favIds = await FavoriteRepo.getFavoriteInstructorIds(dbStudents[0].id);
+          if (mounted) setFavoriteInstructorIds(favIds);
+        }
+      } catch (error) {
+        console.error('Failed to initialize database:', error);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const setUserRole = useCallback((role: UserRole) => {
+    setUserRoleState(role);
+    SettingsRepo.setSetting('userRole', role).catch(console.error);
+  }, []);
+
+  const addAppointment = useCallback((newAppointment: Omit<Appointment, 'id' | 'status'>) => {
+    const appointment: Appointment = {
       ...newAppointment,
-      id: `appt-${appointments.length + 1}`,
+      id: generateId('appt'),
       status: 'Pendente',
     };
-    setAppointments((prev) => [...prev, appointmentWithId]);
-  };
+    setAppointments((prev) => [...prev, appointment]);
+    AppointmentRepo.addAppointment(appointment).catch(console.error);
+  }, []);
 
-  const updateAppointmentStatus = (id: string, status: 'Aceita' | 'Recusada') => {
+  const updateAppointmentStatus = useCallback((id: string, status: 'Aceita' | 'Recusada') => {
     setAppointments((prev) =>
       prev.map((appt) => (appt.id === id ? { ...appt, status } : appt))
     );
-  };
+    AppointmentRepo.updateAppointmentStatus(id, status).catch(console.error);
+  }, []);
 
-  const toggleFavorite = (instructorId: string) => {
+  const toggleFavorite = useCallback((instructorId: string) => {
     setFavoriteInstructorIds((prev) => {
       if (prev.includes(instructorId)) {
         return prev.filter((id) => id !== instructorId);
@@ -221,32 +198,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return [...prev, instructorId];
       }
     });
-  };
+    FavoriteRepo.toggleFavorite(currentStudent.id, instructorId).catch(console.error);
+  }, [currentStudent.id]);
 
-  const updateStudentInfo = (updates: Partial<Student>) => {
+  const updateStudentInfo = useCallback((updates: Partial<Student>) => {
     setCurrentStudent((prev) => ({ ...prev, ...updates }));
-  };
+    StudentRepo.updateStudent(currentStudent.id, updates).catch(console.error);
+  }, [currentStudent.id]);
 
-  const addSavedAddress = (address: Omit<SavedAddress, 'id'>) => {
+  const addSavedAddress = useCallback((address: Omit<SavedAddress, 'id'>) => {
     const newAddress: SavedAddress = {
       ...address,
-      id: `addr-${savedAddresses.length + 1}`,
+      id: generateId('addr'),
     };
     setSavedAddresses((prev) => [...prev, newAddress]);
-  };
+    AddressRepo.addSavedAddress(newAddress).catch(console.error);
+  }, []);
 
-  const removeSavedAddress = (id: string) => {
+  const removeSavedAddress = useCallback((id: string) => {
     setSavedAddresses((prev) => prev.filter((addr) => addr.id !== id));
-  };
+    AddressRepo.removeSavedAddress(id).catch(console.error);
+  }, []);
 
   const value = {
+    isLoading,
     userRole,
     currentStudent,
     currentInstructor,
-    students: mockStudents,
-    instructors: mockInstructors,
+    students,
+    instructors,
     appointments,
-    locations: mockLocations,
+    locations,
     savedAddresses,
     favoriteInstructorIds,
     setUserRole,

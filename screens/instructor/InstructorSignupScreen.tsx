@@ -7,92 +7,320 @@ import {
   TextInput,
   TouchableOpacity,
   Switch,
-  Alert
+  Alert,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SelectList } from 'react-native-dropdown-select-list';
-import { ChevronLeft } from 'lucide-react-native';
+import {
+  ChevronLeft,
+  User,
+  Calendar,
+  Eye,
+  EyeOff,
+  Car,
+  MapPin,
+  DollarSign,
+  FileText,
+  Briefcase
+} from 'lucide-react-native';
 import Colors from '@/constants/Colors';
 import ProgressBar from '@/components/ProgressBar';
 import DocumentUpload from '@/components/DocumentUpload';
+import { isValidCPF, formatCPF, formatPhone, cleanCPF } from '@/utils/cpf';
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4 | 5;
 
-interface InstructorSignupScreenProps {
-  onComplete?: (data: {
-    fullName: string;
-    cpf: string;
-    cnh: string;
-    hasEAR: boolean;
-    carModel: string;
-    year: string;
-    transmission: 'Manual' | 'Auto';
-  }) => void;
+export interface InstructorSignupData {
+  // RF-IN-01
+  name: string;
+  cpf: string;
+  birthDate: string;
+  phone: string;
+  email: string;
+  password: string;
+  // RF-IN-02
+  cnhNumber: string;
+  cnhCategory: string;
+  cnhExpiry: string;
+  experienceYears: string;
+  instructorRegistration: string;
+  experienceText: string;
+  workType: 'autonomo' | 'cfc';
+  // RF-IN-04
+  brand: string;
+  carModel: string;
+  year: string;
+  plate: string;
+  transmission: 'Manual' | 'Auto';
+  hasDualControls: boolean;
+  hasInsurance: boolean;
+  // RF-IN-05
+  city: string;
+  neighborhoods: string;
+  actionRadius: string;
+  // RF-IN-06
+  pricePerHour: string;
 }
 
-export default function InstructorSignupScreen({ onComplete }: InstructorSignupScreenProps) {
+interface InstructorSignupScreenProps {
+  onComplete?: (data: InstructorSignupData) => void;
+  onBack?: () => void;
+}
+
+const CNH_CATEGORIES = ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'AE'];
+
+export default function InstructorSignupScreen({ onComplete, onBack }: InstructorSignupScreenProps) {
   const [currentStep, setCurrentStep] = useState<Step>(1);
 
-  // Step 1 - Personal Data
-  const [fullName, setFullName] = useState('');
+  // Step 1 - RF-IN-01: Dados Pessoais
+  const [name, setName] = useState('');
   const [cpf, setCpf] = useState('');
-  const [cnh, setCnh] = useState('');
-  const [hasEAR, setHasEAR] = useState(true);
+  const [birthDate, setBirthDate] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [cpfError, setCpfError] = useState('');
 
-  // Step 2 - Vehicle
+  // Step 2 - RF-IN-02: Dados Profissionais
+  const [cnhNumber, setCnhNumber] = useState('');
+  const [cnhCategory, setCnhCategory] = useState('');
+  const [cnhExpiry, setCnhExpiry] = useState('');
+  const [experienceYears, setExperienceYears] = useState('');
+  const [instructorRegistration, setInstructorRegistration] = useState('');
+  const [experienceText, setExperienceText] = useState('');
+  const [workType, setWorkType] = useState<'autonomo' | 'cfc' | null>(null);
+
+  // Step 3 - RF-IN-04: Dados do Veiculo
+  const [brand, setBrand] = useState('');
   const [carModel, setCarModel] = useState('');
   const [year, setYear] = useState('');
-  const [transmission, setTransmission] = useState<'Manual' | 'Automático' | null>(null);
-  const [hasAC, setHasAC] = useState(false);
-  const [hasPowerSteering, setHasPowerSteering] = useState(false);
+  const [plate, setPlate] = useState('');
+  const [transmission, setTransmission] = useState<'Manual' | 'Auto' | null>(null);
   const [hasDualControls, setHasDualControls] = useState(false);
+  const [hasInsurance, setHasInsurance] = useState(false);
 
-  // Step 3 - Documents
-  const [cnhUploaded, setCnhUploaded] = useState(false);
+  // Step 4 - RF-IN-05 + RF-IN-06: Area de Atuacao + Preco
+  const [city, setCity] = useState('');
+  const [neighborhoods, setNeighborhoods] = useState('');
+  const [actionRadius, setActionRadius] = useState('');
+  const [pricePerHour, setPricePerHour] = useState('');
+
+  // Step 5 - RF-IN-03: Documentos
+  const [cnhFrontUploaded, setCnhFrontUploaded] = useState(false);
+  const [cnhBackUploaded, setCnhBackUploaded] = useState(false);
   const [certificateUploaded, setCertificateUploaded] = useState(false);
+  const [criminalRecordUploaded, setCriminalRecordUploaded] = useState(false);
+  const [vehicleDocUploaded, setVehicleDocUploaded] = useState(false);
+  const [vehiclePhotoUploaded, setVehiclePhotoUploaded] = useState(false);
+  const [residenceProofUploaded, setResidenceProofUploaded] = useState(false);
 
-  const carModels = [
-    { key: '1', value: 'Honda Fit' },
-    { key: '2', value: 'Toyota Corolla' },
-    { key: '3', value: 'Volkswagen Gol' },
-    { key: '4', value: 'Chevrolet Onix' },
-    { key: '5', value: 'Fiat Argo' },
-  ];
+  const MINIMUM_PRICE = 50;
+
+  const handleCPFChange = (text: string) => {
+    setCpf(formatCPF(text));
+    setCpfError('');
+  };
+
+  const handlePhoneChange = (text: string) => {
+    setPhone(formatPhone(text));
+  };
+
+  const handleDateChange = (text: string, setter: (v: string) => void) => {
+    const cleaned = text.replace(/\D/g, '');
+    let formatted = cleaned;
+    if (cleaned.length > 2) formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
+    if (cleaned.length > 4) formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4, 8)}`;
+    setter(formatted);
+  };
+
+  const handleDocumentUpload = (setter: (v: boolean) => void) => {
+    Alert.alert(
+      'Upload de Documento',
+      'Formatos aceitos: JPG, PNG, PDF.\nFuncionalidade de upload sera implementada. Por enquanto, marcando como enviado.',
+      [{ text: 'OK', onPress: () => setter(true) }]
+    );
+  };
+
+  const validateStep1 = (): boolean => {
+    if (!name.trim()) {
+      Alert.alert('Campo obrigatorio', 'Informe seu nome completo.');
+      return false;
+    }
+    const cleanedCpf = cleanCPF(cpf);
+    if (!cleanedCpf) {
+      Alert.alert('Campo obrigatorio', 'Informe seu CPF.');
+      return false;
+    }
+    if (!isValidCPF(cleanedCpf)) {
+      setCpfError('CPF invalido. Verifique os digitos informados.');
+      return false;
+    }
+    if (!birthDate || birthDate.length < 10) {
+      Alert.alert('Campo obrigatorio', 'Informe sua data de nascimento completa.');
+      return false;
+    }
+    const phoneCleaned = phone.replace(/\D/g, '');
+    if (!phoneCleaned || phoneCleaned.length < 10) {
+      Alert.alert('Campo obrigatorio', 'Informe um telefone valido.');
+      return false;
+    }
+    if (!email.trim()) {
+      Alert.alert('Campo obrigatorio', 'Informe seu e-mail.');
+      return false;
+    }
+    if (!password) {
+      Alert.alert('Campo obrigatorio', 'Crie uma senha.');
+      return false;
+    }
+    if (password.length < 8) {
+      Alert.alert('Senha fraca', 'A senha deve ter no minimo 8 caracteres.');
+      return false;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('Erro', 'As senhas nao coincidem.');
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = (): boolean => {
+    if (!cnhNumber.trim()) {
+      Alert.alert('Campo obrigatorio', 'Informe o numero da CNH.');
+      return false;
+    }
+    if (!cnhCategory) {
+      Alert.alert('Campo obrigatorio', 'Selecione a categoria da CNH.');
+      return false;
+    }
+    if (!cnhExpiry || cnhExpiry.length < 10) {
+      Alert.alert('Campo obrigatorio', 'Informe a data de validade da CNH.');
+      return false;
+    }
+    if (!experienceYears.trim()) {
+      Alert.alert('Campo obrigatorio', 'Informe o tempo de habilitacao.');
+      return false;
+    }
+    if (!workType) {
+      Alert.alert('Campo obrigatorio', 'Selecione como voce atua.');
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep3 = (): boolean => {
+    if (!brand.trim()) {
+      Alert.alert('Campo obrigatorio', 'Informe a marca do veiculo.');
+      return false;
+    }
+    if (!carModel.trim()) {
+      Alert.alert('Campo obrigatorio', 'Informe o modelo do veiculo.');
+      return false;
+    }
+    if (!year.trim() || year.length < 4) {
+      Alert.alert('Campo obrigatorio', 'Informe o ano do veiculo.');
+      return false;
+    }
+    if (!plate.trim()) {
+      Alert.alert('Campo obrigatorio', 'Informe a placa do veiculo.');
+      return false;
+    }
+    if (!transmission) {
+      Alert.alert('Campo obrigatorio', 'Selecione o tipo de cambio.');
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep4 = (): boolean => {
+    if (!city.trim()) {
+      Alert.alert('Campo obrigatorio', 'Informe a cidade de atuacao.');
+      return false;
+    }
+    if (!neighborhoods.trim()) {
+      Alert.alert('Campo obrigatorio', 'Informe os bairros atendidos.');
+      return false;
+    }
+    if (!actionRadius.trim()) {
+      Alert.alert('Campo obrigatorio', 'Informe o raio de atuacao.');
+      return false;
+    }
+    if (!pricePerHour.trim()) {
+      Alert.alert('Campo obrigatorio', 'Informe o valor da hora-aula.');
+      return false;
+    }
+    const price = parseFloat(pricePerHour.replace(',', '.'));
+    if (isNaN(price) || price < MINIMUM_PRICE) {
+      Alert.alert('Valor invalido', `O valor minimo da hora-aula e R$ ${MINIMUM_PRICE},00.`);
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep5 = (): boolean => {
+    if (!cnhFrontUploaded || !cnhBackUploaded) {
+      Alert.alert('Documento obrigatorio', 'Envie a CNH (frente e verso).');
+      return false;
+    }
+    if (!criminalRecordUploaded) {
+      Alert.alert('Documento obrigatorio', 'Envie a certidao negativa de antecedentes.');
+      return false;
+    }
+    if (!vehicleDocUploaded) {
+      Alert.alert('Documento obrigatorio', 'Envie o documento do veiculo.');
+      return false;
+    }
+    if (!vehiclePhotoUploaded) {
+      Alert.alert('Documento obrigatorio', 'Envie a foto do veiculo.');
+      return false;
+    }
+    if (!residenceProofUploaded) {
+      Alert.alert('Documento obrigatorio', 'Envie o comprovante de residencia.');
+      return false;
+    }
+    return true;
+  };
 
   const handleNext = () => {
-    if (currentStep === 1) {
-      if (!fullName || !cpf || !cnh) {
-        Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
-        return;
-      }
+    if (currentStep === 1 && validateStep1()) {
       setCurrentStep(2);
-    } else if (currentStep === 2) {
-      if (!carModel || !year || !transmission) {
-        Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
-        return;
-      }
+    } else if (currentStep === 2 && validateStep2()) {
       setCurrentStep(3);
-    } else if (currentStep === 3) {
-      if (!cnhUploaded || !certificateUploaded) {
-        Alert.alert('Erro', 'Por favor, envie todos os documentos obrigatórios.');
-        return;
-      }
+    } else if (currentStep === 3 && validateStep3()) {
+      setCurrentStep(4);
+    } else if (currentStep === 4 && validateStep4()) {
+      setCurrentStep(5);
+    } else if (currentStep === 5 && validateStep5()) {
       if (onComplete) {
         onComplete({
-          fullName,
-          cpf,
-          cnh,
-          hasEAR,
-          carModel,
-          year,
-          transmission: transmission === 'Automático' ? 'Auto' : 'Manual',
+          name: name.trim(),
+          cpf: cleanCPF(cpf),
+          birthDate,
+          phone: phone.replace(/\D/g, ''),
+          email: email.trim(),
+          password,
+          cnhNumber: cnhNumber.trim(),
+          cnhCategory,
+          cnhExpiry,
+          experienceYears: experienceYears.trim(),
+          instructorRegistration: instructorRegistration.trim(),
+          experienceText: experienceText.trim(),
+          workType: workType!,
+          brand: brand.trim(),
+          carModel: carModel.trim(),
+          year: year.trim(),
+          plate: plate.trim().toUpperCase(),
+          transmission: transmission!,
+          hasDualControls,
+          hasInsurance,
+          city: city.trim(),
+          neighborhoods: neighborhoods.trim(),
+          actionRadius: actionRadius.trim(),
+          pricePerHour: pricePerHour.trim(),
         });
-      } else {
-        Alert.alert(
-          'Sucesso!',
-          'Documentos enviados para análise. Você receberá um retorno em até 48 horas.',
-          [{ text: 'OK' }]
-        );
       }
     }
   };
@@ -100,268 +328,517 @@ export default function InstructorSignupScreen({ onComplete }: InstructorSignupS
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep((prev) => (prev - 1) as Step);
+    } else if (onBack) {
+      onBack();
     }
   };
 
-  const handleDocumentUpload = (docType: 'cnh' | 'certificate') => {
-    Alert.alert(
-      'Upload de Documento',
-      'Funcionalidade de upload será implementada. Por enquanto, marcando como enviado.',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            if (docType === 'cnh') setCnhUploaded(true);
-            else setCertificateUploaded(true);
-          }
-        }
-      ]
-    );
-  };
+  const renderStep1 = () => (
+    <View style={styles.stepContent}>
+      <View style={styles.sectionHeader}>
+        <User size={20} color={Colors.light.primary} />
+        <Text style={styles.sectionTitle}>Dados Pessoais</Text>
+      </View>
+
+      <Text style={styles.label}>Nome completo *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Digite seu nome completo"
+        value={name}
+        onChangeText={setName}
+        autoCapitalize="words"
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>CPF *</Text>
+      <TextInput
+        style={[styles.input, cpfError ? styles.inputError : null]}
+        placeholder="000.000.000-00"
+        value={cpf}
+        onChangeText={handleCPFChange}
+        keyboardType="numeric"
+        maxLength={14}
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+      {cpfError ? <Text style={styles.errorText}>{cpfError}</Text> : null}
+
+      <Text style={styles.label}>Data de nascimento *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="DD/MM/AAAA"
+        value={birthDate}
+        onChangeText={(t) => handleDateChange(t, setBirthDate)}
+        keyboardType="numeric"
+        maxLength={10}
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Telefone *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="(92) 99999-9999"
+        value={phone}
+        onChangeText={handlePhoneChange}
+        keyboardType="phone-pad"
+        maxLength={15}
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>E-mail *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="seu@email.com"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Senha *</Text>
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Minimo 8 caracteres"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+          placeholderTextColor={Colors.light.textTertiary}
+        />
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+          {showPassword ? (
+            <EyeOff size={20} color={Colors.light.textSecondary} />
+          ) : (
+            <Eye size={20} color={Colors.light.textSecondary} />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.label}>Confirmar senha *</Text>
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Repita a senha"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry={!showConfirmPassword}
+          autoCapitalize="none"
+          placeholderTextColor={Colors.light.textTertiary}
+        />
+        <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
+          {showConfirmPassword ? (
+            <EyeOff size={20} color={Colors.light.textSecondary} />
+          ) : (
+            <Eye size={20} color={Colors.light.textSecondary} />
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderStep2 = () => (
+    <View style={styles.stepContent}>
+      <View style={styles.sectionHeader}>
+        <Briefcase size={20} color={Colors.light.primary} />
+        <Text style={styles.sectionTitle}>Dados Profissionais</Text>
+      </View>
+
+      <Text style={styles.label}>Numero da CNH *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Digite o numero da CNH"
+        value={cnhNumber}
+        onChangeText={setCnhNumber}
+        keyboardType="numeric"
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Categoria da CNH *</Text>
+      <View style={styles.categoryGrid}>
+        {CNH_CATEGORIES.map((cat) => (
+          <TouchableOpacity
+            key={cat}
+            style={[styles.categoryChip, cnhCategory === cat && styles.categoryChipActive]}
+            onPress={() => setCnhCategory(cat)}
+          >
+            <Text style={[styles.categoryChipText, cnhCategory === cat && styles.categoryChipTextActive]}>
+              {cat}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={styles.label}>Data de validade da CNH *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="DD/MM/AAAA"
+        value={cnhExpiry}
+        onChangeText={(t) => handleDateChange(t, setCnhExpiry)}
+        keyboardType="numeric"
+        maxLength={10}
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Tempo de habilitacao (anos) *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ex: 5"
+        value={experienceYears}
+        onChangeText={setExperienceYears}
+        keyboardType="numeric"
+        maxLength={2}
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Numero do registro de instrutor</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Se aplicavel"
+        value={instructorRegistration}
+        onChangeText={setInstructorRegistration}
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Experiencia</Text>
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        placeholder="Descreva sua experiencia como instrutor..."
+        value={experienceText}
+        onChangeText={setExperienceText}
+        multiline
+        numberOfLines={4}
+        textAlignVertical="top"
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Atua como *</Text>
+      <View style={styles.workTypeButtons}>
+        <TouchableOpacity
+          style={[styles.workTypeButton, workType === 'autonomo' && styles.workTypeButtonActive]}
+          onPress={() => setWorkType('autonomo')}
+        >
+          <Text style={[styles.workTypeButtonText, workType === 'autonomo' && styles.workTypeButtonTextActive]}>
+            Autonomo
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.workTypeButton, workType === 'cfc' && styles.workTypeButtonActive]}
+          onPress={() => setWorkType('cfc')}
+        >
+          <Text style={[styles.workTypeButtonText, workType === 'cfc' && styles.workTypeButtonTextActive]}>
+            Vinculado a CFC
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderStep3 = () => (
+    <View style={styles.stepContent}>
+      <View style={styles.sectionHeader}>
+        <Car size={20} color={Colors.light.primary} />
+        <Text style={styles.sectionTitle}>Dados do Veiculo</Text>
+      </View>
+
+      <Text style={styles.label}>Marca *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ex: Honda, Toyota, Volkswagen"
+        value={brand}
+        onChangeText={setBrand}
+        autoCapitalize="words"
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Modelo *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ex: Fit, Corolla, Gol"
+        value={carModel}
+        onChangeText={setCarModel}
+        autoCapitalize="words"
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Ano *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ex: 2022"
+        value={year}
+        onChangeText={setYear}
+        keyboardType="numeric"
+        maxLength={4}
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Placa *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="ABC-1234 ou ABC1D23"
+        value={plate}
+        onChangeText={setPlate}
+        autoCapitalize="characters"
+        maxLength={8}
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Tipo de cambio *</Text>
+      <View style={styles.transmissionButtons}>
+        <TouchableOpacity
+          style={[styles.transmissionButton, transmission === 'Manual' && styles.transmissionButtonActive]}
+          onPress={() => setTransmission('Manual')}
+        >
+          <Text style={[styles.transmissionButtonText, transmission === 'Manual' && styles.transmissionButtonTextActive]}>
+            Manual
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.transmissionButton, transmission === 'Auto' && styles.transmissionButtonActive]}
+          onPress={() => setTransmission('Auto')}
+        >
+          <Text style={[styles.transmissionButtonText, transmission === 'Auto' && styles.transmissionButtonTextActive]}>
+            Automatico
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.switchRow}>
+        <Text style={styles.switchLabel}>Possui duplo comando?</Text>
+        <Switch
+          value={hasDualControls}
+          onValueChange={setHasDualControls}
+          trackColor={{ false: Colors.light.border, true: Colors.light.success }}
+          thumbColor={Colors.light.surface}
+        />
+      </View>
+
+      <View style={styles.switchRow}>
+        <Text style={styles.switchLabel}>Possui seguro?</Text>
+        <Switch
+          value={hasInsurance}
+          onValueChange={setHasInsurance}
+          trackColor={{ false: Colors.light.border, true: Colors.light.success }}
+          thumbColor={Colors.light.surface}
+        />
+      </View>
+    </View>
+  );
+
+  const renderStep4 = () => (
+    <View style={styles.stepContent}>
+      <View style={styles.sectionHeader}>
+        <MapPin size={20} color={Colors.light.primary} />
+        <Text style={styles.sectionTitle}>Area de Atuacao</Text>
+      </View>
+
+      <Text style={styles.label}>Cidade *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ex: Manaus"
+        value={city}
+        onChangeText={setCity}
+        autoCapitalize="words"
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Bairros atendidos *</Text>
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        placeholder="Ex: Centro, Adrianopolis, Aleixo, Flores..."
+        value={neighborhoods}
+        onChangeText={setNeighborhoods}
+        multiline
+        numberOfLines={3}
+        textAlignVertical="top"
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <Text style={styles.label}>Raio de atuacao (km) *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ex: 15"
+        value={actionRadius}
+        onChangeText={setActionRadius}
+        keyboardType="numeric"
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+
+      <View style={styles.sectionDivider} />
+
+      <View style={styles.sectionHeader}>
+        <DollarSign size={20} color={Colors.light.primary} />
+        <Text style={styles.sectionTitle}>Valor da Hora-Aula</Text>
+      </View>
+
+      <Text style={styles.priceHint}>
+        Valor minimo permitido pela plataforma: R$ {MINIMUM_PRICE},00
+      </Text>
+
+      <Text style={styles.label}>Preco por hora (R$) *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={`Ex: ${MINIMUM_PRICE}`}
+        value={pricePerHour}
+        onChangeText={setPricePerHour}
+        keyboardType="numeric"
+        placeholderTextColor={Colors.light.textTertiary}
+      />
+    </View>
+  );
+
+  const renderStep5 = () => (
+    <View style={styles.stepContent}>
+      <View style={styles.sectionHeader}>
+        <FileText size={20} color={Colors.light.primary} />
+        <Text style={styles.sectionTitle}>Upload de Documentos</Text>
+      </View>
+
+      <Text style={styles.docHint}>
+        Formatos aceitos: JPG, PNG, PDF
+      </Text>
+
+      <DocumentUpload
+        title="CNH - Frente"
+        description="Foto legivel da frente da CNH"
+        type="photo"
+        uploaded={cnhFrontUploaded}
+        onPress={() => handleDocumentUpload(setCnhFrontUploaded)}
+      />
+
+      <View style={styles.docSpacer} />
+
+      <DocumentUpload
+        title="CNH - Verso"
+        description="Foto legivel do verso da CNH"
+        type="photo"
+        uploaded={cnhBackUploaded}
+        onPress={() => handleDocumentUpload(setCnhBackUploaded)}
+      />
+
+      <View style={styles.docSpacer} />
+
+      <DocumentUpload
+        title="Certificado de Instrutor"
+        description="Se aplicavel - foto ou PDF do certificado"
+        type="pdf"
+        uploaded={certificateUploaded}
+        onPress={() => handleDocumentUpload(setCertificateUploaded)}
+      />
+
+      <View style={styles.docSpacer} />
+
+      <DocumentUpload
+        title="Certidao Negativa de Antecedentes"
+        description="Documento obrigatorio"
+        type="pdf"
+        uploaded={criminalRecordUploaded}
+        onPress={() => handleDocumentUpload(setCriminalRecordUploaded)}
+      />
+
+      <View style={styles.docSpacer} />
+
+      <DocumentUpload
+        title="Documento do Veiculo (CRLV)"
+        description="Foto ou PDF do documento do veiculo"
+        type="pdf"
+        uploaded={vehicleDocUploaded}
+        onPress={() => handleDocumentUpload(setVehicleDocUploaded)}
+      />
+
+      <View style={styles.docSpacer} />
+
+      <DocumentUpload
+        title="Foto do Veiculo"
+        description="Foto do veiculo que sera utilizado nas aulas"
+        type="photo"
+        uploaded={vehiclePhotoUploaded}
+        onPress={() => handleDocumentUpload(setVehiclePhotoUploaded)}
+      />
+
+      <View style={styles.docSpacer} />
+
+      <DocumentUpload
+        title="Comprovante de Residencia"
+        description="Conta de luz, agua ou outro comprovante recente"
+        type="pdf"
+        uploaded={residenceProofUploaded}
+        onPress={() => handleDocumentUpload(setResidenceProofUploaded)}
+      />
+    </View>
+  );
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case 1:
-        return (
-          <View style={styles.stepContent}>
-            <Text style={styles.label}>Nome Completo</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Digite seu nome completo"
-              value={fullName}
-              onChangeText={setFullName}
-              placeholderTextColor={Colors.light.textTertiary}
-            />
-
-            <Text style={styles.label}>CPF</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="000.000.000-00"
-              value={cpf}
-              onChangeText={setCpf}
-              keyboardType="numeric"
-              placeholderTextColor={Colors.light.textTertiary}
-            />
-
-            <Text style={styles.label}>Número da CNH</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Digite o número da CNH"
-              value={cnh}
-              onChangeText={setCnh}
-              keyboardType="numeric"
-              placeholderTextColor={Colors.light.textTertiary}
-            />
-
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Possui EAR (Exerce Atividade Remunerada)?</Text>
-              <Switch
-                value={hasEAR}
-                onValueChange={setHasEAR}
-                trackColor={{ false: Colors.light.border, true: Colors.light.success }}
-                thumbColor={Colors.light.surface}
-              />
-            </View>
-          </View>
-        );
-
-      case 2:
-        return (
-          <View style={styles.stepContent}>
-            <Text style={styles.label}>Modelo do Carro</Text>
-            <SelectList
-              setSelected={(val: string) => {
-                const selected = carModels.find(m => m.key === val);
-                setCarModel(selected?.value || '');
-              }}
-              data={carModels}
-              save="key"
-              placeholder="Selecione (ex: Honda Fit)"
-              search={false}
-              boxStyles={styles.selectBox}
-              dropdownStyles={styles.selectDropdown}
-              inputStyles={styles.selectInput}
-            />
-
-            <Text style={styles.label}>Ano de Fabricação</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="2020"
-              value={year}
-              onChangeText={setYear}
-              keyboardType="numeric"
-              maxLength={4}
-              placeholderTextColor={Colors.light.textTertiary}
-            />
-
-            <Text style={styles.label}>Transmissão</Text>
-            <View style={styles.transmissionButtons}>
-              <TouchableOpacity
-                style={[
-                  styles.transmissionButton,
-                  transmission === 'Manual' && styles.transmissionButtonActive
-                ]}
-                onPress={() => setTransmission('Manual')}
-              >
-                <Text
-                  style={[
-                    styles.transmissionButtonText,
-                    transmission === 'Manual' && styles.transmissionButtonTextActive
-                  ]}
-                >
-                  ⚙️ Manual
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.transmissionButton,
-                  transmission === 'Automático' && styles.transmissionButtonActive
-                ]}
-                onPress={() => setTransmission('Automático')}
-              >
-                <Text
-                  style={[
-                    styles.transmissionButtonText,
-                    transmission === 'Automático' && styles.transmissionButtonTextActive
-                  ]}
-                >
-                  A Automático
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.label}>Itens de Segurança</Text>
-            <View style={styles.checkboxContainer}>
-              <TouchableOpacity
-                style={styles.checkbox}
-                onPress={() => setHasAC(!hasAC)}
-              >
-                <View style={[styles.checkboxBox, hasAC && styles.checkboxBoxChecked]}>
-                  {hasAC && <Text style={styles.checkboxCheck}>✓</Text>}
-                </View>
-                <Text style={styles.checkboxLabel}>Ar Condicionado</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.checkbox}
-                onPress={() => setHasPowerSteering(!hasPowerSteering)}
-              >
-                <View style={[styles.checkboxBox, hasPowerSteering && styles.checkboxBoxChecked]}>
-                  {hasPowerSteering && <Text style={styles.checkboxCheck}>✓</Text>}
-                </View>
-                <Text style={styles.checkboxLabel}>Direção Hidráulica/Elétrica</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.checkbox}
-                onPress={() => setHasDualControls(!hasDualControls)}
-              >
-                <View style={[styles.checkboxBox, hasDualControls && styles.checkboxBoxChecked]}>
-                  {hasDualControls && <Text style={styles.checkboxCheck}>✓</Text>}
-                </View>
-                <Text style={styles.checkboxLabel}>Duplo Comando (Pedais auxiliares)</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        );
-
-      case 3:
-        return (
-          <View style={styles.stepContent}>
-            <DocumentUpload
-              title="Foto da CNH Aberta (Com EAR)"
-              description="Frente e Verso legíveis"
-              type="photo"
-              uploaded={cnhUploaded}
-              onPress={() => handleDocumentUpload('cnh')}
-            />
-
-            <View style={{ height: 20 }} />
-
-            <DocumentUpload
-              title="Certificado de Curso de Instrutor"
-              description="Foto ou PDF do certificado válido"
-              type="pdf"
-              uploaded={certificateUploaded}
-              onPress={() => handleDocumentUpload('certificate')}
-            />
-          </View>
-        );
-
-      default:
-        return null;
+      case 1: return renderStep1();
+      case 2: return renderStep2();
+      case 3: return renderStep3();
+      case 4: return renderStep4();
+      case 5: return renderStep5();
+      default: return null;
     }
   };
 
-  const getStepTitle = () => {
-    switch (currentStep) {
-      case 1:
-        return 'Torne-se um Instrutor';
-      case 2:
-        return 'Seu Veículo';
-      case 3:
-        return 'Envie seus Documentos';
-      default:
-        return '';
-    }
+  const stepTitles: Record<Step, string> = {
+    1: 'Dados Pessoais',
+    2: 'Dados Profissionais',
+    3: 'Seu Veiculo',
+    4: 'Area e Preco',
+    5: 'Documentos',
   };
 
-  const getButtonText = () => {
-    switch (currentStep) {
-      case 1:
-        return 'Próximo: Veículo';
-      case 2:
-        return 'Próximo: Documentos';
-      case 3:
-        return 'Enviar para Análise';
-      default:
-        return 'Próximo';
-    }
+  const buttonTexts: Record<Step, string> = {
+    1: 'Proximo: Dados Profissionais',
+    2: 'Proximo: Veiculo',
+    3: 'Proximo: Area e Preco',
+    4: 'Proximo: Documentos',
+    5: 'Enviar para Analise',
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        {currentStep > 1 && (
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {/* Header */}
+        <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
             <ChevronLeft size={24} color={Colors.light.textPrimary} />
           </TouchableOpacity>
-        )}
-        <View style={styles.headerContent}>
-          <Text style={styles.title}>{getStepTitle()}</Text>
-          <Text style={styles.stepIndicator}>{currentStep}/3</Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>{stepTitles[currentStep]}</Text>
+            <Text style={styles.stepIndicator}>{currentStep}/5</Text>
+          </View>
         </View>
-      </View>
 
-      {/* Progress Bar */}
-      <View style={styles.progressContainer}>
-        <ProgressBar currentStep={currentStep} totalSteps={3} />
-      </View>
+        {/* Progress Bar */}
+        <View style={styles.progressContainer}>
+          <ProgressBar currentStep={currentStep} totalSteps={5} />
+        </View>
 
-      {/* Step Content */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {renderStepContent()}
-      </ScrollView>
-
-      {/* Next Button */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[
-            styles.nextButton,
-            currentStep === 3 && styles.submitButton
-          ]}
-          onPress={handleNext}
-          activeOpacity={0.8}
+        {/* Step Content */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.nextButtonText}>{getButtonText()}</Text>
-        </TouchableOpacity>
-      </View>
+          {renderStepContent()}
+        </ScrollView>
+
+        {/* Next Button */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.nextButton, currentStep === 5 && styles.submitButton]}
+            onPress={handleNext}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.nextButtonText}>{buttonTexts[currentStep]}</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -371,15 +848,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
   },
+  keyboardView: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 16,
     paddingBottom: 12,
   },
   backButton: {
     marginRight: 12,
+    padding: 4,
   },
   headerContent: {
     flex: 1,
@@ -388,7 +869,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: Colors.light.textPrimary,
   },
@@ -399,7 +880,7 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     paddingHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   scrollView: {
     flex: 1,
@@ -409,13 +890,24 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   stepContent: {
-    gap: 16,
+    gap: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.light.textPrimary,
   },
   label: {
     fontSize: 15,
     fontWeight: '600',
     color: Colors.light.textPrimary,
-    marginBottom: 8,
+    marginTop: 4,
   },
   input: {
     backgroundColor: Colors.light.surface,
@@ -427,39 +919,85 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.textPrimary,
   },
-  switchRow: {
+  inputError: {
+    borderColor: Colors.light.error,
+  },
+  textArea: {
+    minHeight: 90,
+    paddingTop: 14,
+  },
+  errorText: {
+    fontSize: 13,
+    color: Colors.light.error,
+    marginTop: -4,
+  },
+  passwordContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: Colors.light.surface,
-    padding: 16,
-    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: Colors.light.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
   },
-  switchLabel: {
-    fontSize: 15,
-    color: Colors.light.textPrimary,
+  passwordInput: {
     flex: 1,
-    marginRight: 12,
-  },
-  selectBox: {
-    backgroundColor: Colors.light.surface,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: Colors.light.border,
     paddingVertical: 14,
-  },
-  selectDropdown: {
-    backgroundColor: Colors.light.surface,
-    borderColor: Colors.light.border,
-    borderWidth: 1.5,
-    borderRadius: 12,
-    marginTop: 4,
-  },
-  selectInput: {
-    color: Colors.light.textPrimary,
     fontSize: 16,
+    color: Colors.light.textPrimary,
+  },
+  eyeIcon: {
+    padding: 8,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: Colors.light.border,
+    backgroundColor: Colors.light.surface,
+  },
+  categoryChipActive: {
+    borderColor: Colors.light.primary,
+    backgroundColor: Colors.light.infoLight,
+  },
+  categoryChipText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.light.textSecondary,
+  },
+  categoryChipTextActive: {
+    color: Colors.light.primary,
+  },
+  workTypeButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  workTypeButton: {
+    flex: 1,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 2,
+    borderColor: Colors.light.border,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  workTypeButtonActive: {
+    borderColor: Colors.light.primary,
+    backgroundColor: Colors.light.infoLight,
+  },
+  workTypeButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.light.textSecondary,
+  },
+  workTypeButtonTextActive: {
+    color: Colors.light.primary,
   },
   transmissionButtons: {
     flexDirection: 'row',
@@ -486,41 +1024,44 @@ const styles = StyleSheet.create({
   transmissionButtonTextActive: {
     color: Colors.light.primary,
   },
-  checkboxContainer: {
-    gap: 12,
-  },
-  checkbox: {
+  switchRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: Colors.light.surface,
-    padding: 14,
+    padding: 16,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: Colors.light.border,
   },
-  checkboxBox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: Colors.light.border,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxBoxChecked: {
-    backgroundColor: Colors.light.success,
-    borderColor: Colors.light.success,
-  },
-  checkboxCheck: {
-    color: Colors.light.surface,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  checkboxLabel: {
+  switchLabel: {
     fontSize: 15,
     color: Colors.light.textPrimary,
     flex: 1,
+    marginRight: 12,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: Colors.light.border,
+    marginVertical: 8,
+  },
+  priceHint: {
+    fontSize: 13,
+    color: Colors.light.info,
+    backgroundColor: Colors.light.infoLight,
+    padding: 12,
+    borderRadius: 8,
+  },
+  docHint: {
+    fontSize: 13,
+    color: Colors.light.info,
+    backgroundColor: Colors.light.infoLight,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  docSpacer: {
+    height: 16,
   },
   footer: {
     padding: 20,

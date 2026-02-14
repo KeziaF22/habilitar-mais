@@ -42,6 +42,27 @@ export async function createUser(user: {
   );
 }
 
+export async function getUserByCpf(cpf: string): Promise<UserRow | null> {
+  const db = await getDatabase();
+  // Check CPF in students table
+  const student = await db.getFirstAsync<{ id: string }>(
+    'SELECT id FROM students WHERE cpf = ?',
+    [cpf]
+  );
+  if (student) {
+    return db.getFirstAsync<UserRow>(
+      'SELECT * FROM users WHERE student_id = ?',
+      [student.id]
+    );
+  }
+  // Check CPF in users table directly (for instructors stored with cpf)
+  const userWithCpf = await db.getFirstAsync<UserRow>(
+    'SELECT u.* FROM users u JOIN instructors i ON u.instructor_id = i.id WHERE i.cpf = ?',
+    [cpf]
+  );
+  return userWithCpf || null;
+}
+
 export async function updateUserRole(
   userId: string,
   role: 'student' | 'instructor',

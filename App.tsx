@@ -10,8 +10,8 @@ import { Search, Calendar, Heart, User, Home, Wallet } from 'lucide-react-native
 import Colors from '@/constants/Colors';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import LoginScreen from '@/screens/LoginScreen';
-import SignupScreen from '@/screens/SignupScreen';
 import OnboardingScreen from '@/screens/OnboardingScreen';
+import StudentSignupScreen from '@/screens/StudentSignupScreen';
 import StudentProfileCompletionScreen from '@/screens/StudentProfileCompletionScreen';
 import StudentHomeScreen from '@/screens/student/StudentHomeScreen';
 import InstructorDetailScreen from '@/screens/student/InstructorDetailScreen';
@@ -24,7 +24,7 @@ import InstructorSignupScreen from '@/screens/instructor/InstructorSignupScreen'
 import InstructorAgendaScreen from '@/screens/instructor/InstructorAgendaScreen';
 import InstructorWalletScreen from '@/screens/instructor/InstructorWalletScreen';
 import InstructorProfileScreen from '@/screens/instructor/InstructorProfileScreen';
-import { InstructorStackParamList, StudentStackParamList, StudentTabParamList, InstructorTabParamList } from '@/navigation/types';
+import { StudentStackParamList, StudentTabParamList, InstructorTabParamList } from '@/navigation/types';
 
 enableScreens();
 
@@ -168,7 +168,7 @@ function InstructorTabNavigator() {
         name="Inicio"
         component={InstructorHomeScreen}
         options={{
-          tabBarLabel: 'Início',
+          tabBarLabel: 'Inicio',
           tabBarIcon: ({ color }) => <Home size={24} color={color} />,
         }}
       />
@@ -200,7 +200,8 @@ function InstructorTabNavigator() {
   );
 }
 
-type AuthScreen = 'login' | 'signup';
+// New flow: login -> choose_role -> signup_student | signup_instructor
+type AuthScreen = 'login' | 'choose_role' | 'signup_student' | 'signup_instructor';
 
 function RootNavigator() {
   const {
@@ -208,13 +209,12 @@ function RootNavigator() {
     isLoading,
     signupStage,
     setSignupStage,
-    signup,
     login,
+    signupStudent,
+    signupInstructor,
     completeStudentProfile,
-    completeInstructorProfile,
   } = useAuth();
   const [authScreen, setAuthScreen] = React.useState<AuthScreen>('login');
-  const [pendingName, setPendingName] = React.useState('');
 
   if (isLoading) {
     return (
@@ -224,7 +224,7 @@ function RootNavigator() {
     );
   }
 
-  // Signup stage: choose role (after signup or login with incomplete profile)
+  // Legacy: handle incomplete profiles from old signup flow (login with no role)
   if (signupStage === 'choose_role') {
     return (
       <OnboardingScreen
@@ -239,42 +239,71 @@ function RootNavigator() {
     );
   }
 
-  // Signup stage: complete student profile
   if (signupStage === 'complete_student') {
     return (
       <StudentProfileCompletionScreen
-        studentName={pendingName}
+        studentName=""
         onComplete={() => completeStudentProfile()}
       />
     );
   }
 
-  // Signup stage: complete instructor profile
   if (signupStage === 'complete_instructor') {
     return (
       <InstructorSignupScreen
-        onComplete={(data) => completeInstructorProfile(data)}
+        onComplete={async (data) => {
+          await signupInstructor(data);
+        }}
+        onBack={() => setSignupStage('choose_role')}
       />
     );
   }
 
-  // Not logged in - show login/signup
+  // Not logged in - new signup flow
   if (!userRole) {
-    if (authScreen === 'signup') {
+    // Step 1: Choose role (Aluno ou Instrutor)
+    if (authScreen === 'choose_role') {
       return (
-        <SignupScreen
-          onSignupComplete={async (data) => {
-            setPendingName(data.name);
-            await signup(data);
+        <OnboardingScreen
+          onRoleSelected={(role) => {
+            if (role === 'student') {
+              setAuthScreen('signup_student');
+            } else {
+              setAuthScreen('signup_instructor');
+            }
           }}
-          onBackToLogin={() => setAuthScreen('login')}
         />
       );
     }
 
+    // Step 2a: Student signup form
+    if (authScreen === 'signup_student') {
+      return (
+        <StudentSignupScreen
+          onSignupComplete={async (data) => {
+            await signupStudent(data);
+          }}
+          onBack={() => setAuthScreen('choose_role')}
+        />
+      );
+    }
+
+    // Step 2b: Instructor signup form (5 steps)
+    if (authScreen === 'signup_instructor') {
+      return (
+        <InstructorSignupScreen
+          onComplete={async (data) => {
+            await signupInstructor(data);
+          }}
+          onBack={() => setAuthScreen('choose_role')}
+        />
+      );
+    }
+
+    // Default: Login screen
     return (
       <LoginScreen
-        onSignup={() => setAuthScreen('signup')}
+        onSignup={() => setAuthScreen('choose_role')}
         onLogin={login}
       />
     );

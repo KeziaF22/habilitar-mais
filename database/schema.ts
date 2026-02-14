@@ -1,6 +1,6 @@
 import { SQLiteDatabase } from 'expo-sqlite';
 
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 const CREATE_TABLES = `
 CREATE TABLE IF NOT EXISTS instructors (
@@ -20,14 +20,33 @@ CREATE TABLE IF NOT EXISTS instructors (
   isAvailable INTEGER NOT NULL DEFAULT 1,
   location TEXT NOT NULL DEFAULT '',
   latitude REAL NOT NULL DEFAULT 0,
-  longitude REAL NOT NULL DEFAULT 0
+  longitude REAL NOT NULL DEFAULT 0,
+  cpf TEXT,
+  phone TEXT,
+  email TEXT,
+  birthDate TEXT,
+  cnhNumber TEXT,
+  cnhCategory TEXT,
+  cnhExpiry TEXT,
+  experienceYears TEXT,
+  instructorRegistration TEXT,
+  workType TEXT,
+  brand TEXT,
+  plate TEXT,
+  hasDualControls INTEGER DEFAULT 0,
+  hasInsurance INTEGER DEFAULT 0,
+  city TEXT,
+  neighborhoods TEXT,
+  actionRadius TEXT
 );
 
 CREATE TABLE IF NOT EXISTS students (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT NOT NULL,
   email TEXT,
-  phone TEXT
+  phone TEXT,
+  cpf TEXT,
+  birthDate TEXT
 );
 
 CREATE TABLE IF NOT EXISTS appointments (
@@ -120,6 +139,41 @@ export async function initializeSchema(db: SQLiteDatabase): Promise<void> {
         FOREIGN KEY (instructor_id) REFERENCES instructors(id)
       );
     `);
+  }
+
+  // Migration v2 -> v3: add cpf/birthDate to students, extra fields to instructors
+  if (currentVersion >= 1 && currentVersion < 3) {
+    const alterStatements = [
+      // Students
+      "ALTER TABLE students ADD COLUMN cpf TEXT;",
+      "ALTER TABLE students ADD COLUMN birthDate TEXT;",
+      // Instructors
+      "ALTER TABLE instructors ADD COLUMN cpf TEXT;",
+      "ALTER TABLE instructors ADD COLUMN phone TEXT;",
+      "ALTER TABLE instructors ADD COLUMN email TEXT;",
+      "ALTER TABLE instructors ADD COLUMN birthDate TEXT;",
+      "ALTER TABLE instructors ADD COLUMN cnhNumber TEXT;",
+      "ALTER TABLE instructors ADD COLUMN cnhCategory TEXT;",
+      "ALTER TABLE instructors ADD COLUMN cnhExpiry TEXT;",
+      "ALTER TABLE instructors ADD COLUMN experienceYears TEXT;",
+      "ALTER TABLE instructors ADD COLUMN instructorRegistration TEXT;",
+      "ALTER TABLE instructors ADD COLUMN workType TEXT;",
+      "ALTER TABLE instructors ADD COLUMN brand TEXT;",
+      "ALTER TABLE instructors ADD COLUMN plate TEXT;",
+      "ALTER TABLE instructors ADD COLUMN hasDualControls INTEGER DEFAULT 0;",
+      "ALTER TABLE instructors ADD COLUMN hasInsurance INTEGER DEFAULT 0;",
+      "ALTER TABLE instructors ADD COLUMN city TEXT;",
+      "ALTER TABLE instructors ADD COLUMN neighborhoods TEXT;",
+      "ALTER TABLE instructors ADD COLUMN actionRadius TEXT;",
+    ];
+
+    for (const stmt of alterStatements) {
+      try {
+        await db.execAsync(stmt);
+      } catch {
+        // Column may already exist, ignore
+      }
+    }
   }
 
   if (currentVersion < DB_VERSION) {

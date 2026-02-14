@@ -14,8 +14,8 @@ export async function getStudentById(id: string): Promise<Student | null> {
 export async function addStudent(student: Student): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
-    'INSERT INTO students (id, name, email, phone) VALUES (?, ?, ?, ?)',
-    [student.id, student.name, student.email ?? null, student.phone ?? null]
+    'INSERT INTO students (id, name, email, phone, cpf, birthDate) VALUES (?, ?, ?, ?, ?, ?)',
+    [student.id, student.name, student.email ?? null, student.phone ?? null, student.cpf ?? null, student.birthDate ?? null]
   );
 }
 
@@ -35,6 +35,14 @@ export async function updateStudent(id: string, updates: Partial<Student>): Prom
   if (updates.phone !== undefined) {
     fields.push('phone = ?');
     values.push(updates.phone);
+  }
+  if (updates.cpf !== undefined) {
+    fields.push('cpf = ?');
+    values.push(updates.cpf);
+  }
+  if (updates.birthDate !== undefined) {
+    fields.push('birthDate = ?');
+    values.push(updates.birthDate);
   }
 
   if (fields.length === 0) return;

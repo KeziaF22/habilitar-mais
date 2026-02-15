@@ -9,8 +9,8 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "cover",
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#2563EB"
     },
     "assetBundlePatterns": [
@@ -39,7 +39,15 @@
         }
       ],
       "@rnmapbox/maps",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "backgroundColor": "#2563EB"
+        }
+      ]
     ]
   }
 }

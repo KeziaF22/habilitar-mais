@@ -51,7 +51,7 @@ export default function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
     >
       <LinearGradient
         colors={[Colors.light.primary, Colors.light.primaryDark]}
@@ -61,6 +61,7 @@ export default function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
         >
           {/* Logo Section */}
           <View style={styles.logoSection}>

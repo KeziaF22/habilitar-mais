@@ -134,7 +134,7 @@ export default function StudentSignupScreen({ onSignupComplete, onBack }: Studen
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
     >
       <LinearGradient
         colors={[Colors.light.primary, Colors.light.primaryDark]}
@@ -144,6 +144,7 @@ export default function StudentSignupScreen({ onSignupComplete, onBack }: Studen
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
         >
           {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={onBack}>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { Circle, Path, Rect, Defs, LinearGradient, Stop, G } from 'react-native-svg';
+import { CAR_PATHS, SVG_INNER_TRANSFORM } from '../constants/logoPaths';
 
 interface OnboardingIllustrationProps {
   width?: number;
@@ -68,42 +69,17 @@ export default function OnboardingIllustration({
           <Path d="M50 55 L50 69" stroke="url(#studentBg)" strokeWidth="1.5" opacity="0.6" />
         </G>
 
-        {/* Main car (center) */}
-        <G transform="translate(125, 130)">
-          {/* Car body */}
-          <Path
-            d="M30 70 C30 70 36 48 44 42 C52 36 68 32 82 32 C96 32 108 38 114 48 C120 58 124 66 124 70 L124 78 C124 80 122 82 120 82 L34 82 C32 82 30 80 30 78 Z"
-            fill="url(#carGradient)"
-          />
-          {/* Windows */}
-          <Path
-            d="M72 38 C64 38 52 40 48 46 L44 58 L84 58 L78 38 C76 38 74 38 72 38 Z"
-            fill="white"
-            opacity="0.3"
-          />
-          <Path
-            d="M82 38 L88 58 L110 64 L108 52 C104 42 96 38 88 38 Z"
-            fill="white"
-            opacity="0.2"
-          />
-          {/* Speed lines */}
-          <Path d="M6 52 L28 52" stroke="url(#carGradient)" strokeWidth="5" strokeLinecap="round" />
-          <Path d="M10 62 L30 62" stroke="url(#carGradient)" strokeWidth="4" strokeLinecap="round" />
-          <Path d="M16 72 L30 72" stroke="url(#carGradient)" strokeWidth="3" strokeLinecap="round" opacity="0.6" />
-          {/* Wheels */}
-          <Circle cx="54" cy="82" r="12" fill="url(#carGradient)" />
-          <Circle cx="54" cy="82" r="8" fill="white" opacity="0.3" />
-          <Circle cx="54" cy="82" r="4" fill="url(#carGradient)" />
-          <Circle cx="106" cy="82" r="12" fill="url(#carGradient)" />
-          <Circle cx="106" cy="82" r="8" fill="white" opacity="0.3" />
-          <Circle cx="106" cy="82" r="4" fill="url(#carGradient)" />
-          {/* Headlight */}
-          <Circle cx="122" cy="64" r="4" fill="white" opacity="0.6" />
-          {/* Plus badge */}
-          <G transform="translate(100, -10)">
-            <Circle cx="20" cy="20" r="18" fill="#10B981" />
-            <Path d="M20 12 L20 28 M12 20 L28 20" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+        {/* Car from original logo (center) */}
+        <G transform="translate(46, 111) scale(0.615)">
+          <G transform={SVG_INNER_TRANSFORM} fill="url(#carGradient)" stroke="none">
+            {CAR_PATHS.map((d, i) => <Path key={i} d={d} />)}
           </G>
+        </G>
+
+        {/* Plus badge on car */}
+        <G transform="translate(265, 125)">
+          <Circle cx="16" cy="16" r="14" fill="#10B981" />
+          <Path d="M16 10 L16 22 M10 16 L22 16" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
         </G>
 
         {/* Instructor icon (right) */}

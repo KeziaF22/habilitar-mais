@@ -1,219 +1,194 @@
 const sharp = require('sharp');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 
 const outputDir = path.join(__dirname, '..', 'assets', 'images');
+const constantsDir = path.join(__dirname, '..', 'constants');
 
-// App icon SVG - Blue gradient circle with white car + green plus badge
-const iconSvg = `
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+// ============================================================
+// Read and parse original SVG logo
+// ============================================================
+const svgContent = fs.readFileSync(path.join(outputDir, '15117491.svg'), 'utf-8');
+
+const pathRegex = /<path\s+d="([\s\S]*?)"\s*\/>/g;
+const allPaths = [];
+let match;
+while ((match = pathRegex.exec(svgContent)) !== null) {
+  allPaths.push(match[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim());
+}
+
+// Separate car paths from text paths by internal Y coordinate
+// Y >= 1400 in internal coords = car illustration (display y ≈ 60-165)
+// Y < 1400 = "Habilitar+" text (display y ≈ 188-223)
+const carPaths = [];
+const textPaths = [];
+allPaths.forEach(d => {
+  const m = d.match(/^M\s*(\d+)\s+(\d+)/);
+  if (m) {
+    (parseInt(m[2]) >= 1400 ? carPaths : textPaths).push(d);
+  }
+});
+
+console.log(`Parsed SVG: ${allPaths.length} paths (${carPaths.length} car, ${textPaths.length} text)\n`);
+
+// Original SVG internal transform: maps internal coords to 485x303 viewBox
+const INNER = 'translate(0,303) scale(0.1,-0.1)';
+
+// Display bounds (after inner transform):
+// Car:  x≈[120,380] y≈[65,175]  center=(250, 120) size≈(260, 110)
+// Text: x≈[136,400] y≈[188,223]
+// Full: x≈[120,400] y≈[65,223]  center=(260, 144) size≈(280, 158)
+
+function renderPaths(paths) {
+  return paths.map(d => `      <path d="${d}"/>`).join('\n');
+}
+
+// ============================================================
+// 1. App Icon (1024x1024) - blue circle + white car + green "+"
+// Car center (250,120) → canvas (512, 480). Scale: 750/260 ≈ 2.88
+// ============================================================
+const iconSvg = `<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2563EB" />
-      <stop offset="100%" stop-color="#06B6D4" />
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1E40AF"/>
     </linearGradient>
-    <clipPath id="speedClip">
-      <rect x="0" y="0" width="1024" height="368"/>
-      <rect x="0" y="410" width="1024" height="42"/>
-      <rect x="0" y="492" width="1024" height="532"/>
-    </clipPath>
   </defs>
-
-  <!-- Background circle -->
-  <circle cx="512" cy="512" r="490" fill="url(#bg)" />
-
-  <!-- Car silhouette with speed line cutouts -->
-  <g transform="translate(105, 205)">
-    <!-- Car body -->
-    <path
-      d="M184 450 L225 307 C245 266 287 225 327 225 L553 225 C593 225 635 266 655 307 L716 409 L737 450 C737 471 716 491 696 491 L204 491 C184 491 163 471 184 450 Z"
-      fill="white"
-      clip-path="url(#speedClip)"
-    />
-
-    <!-- Windshield -->
-    <path
-      d="M368 230 L286 375 L594 375 L552 230 Z"
-      fill="white"
-      opacity="0.4"
-      clip-path="url(#speedClip)"
-    />
-
-    <!-- Speed lines -->
-    <line x1="40" y1="307" x2="225" y2="307" stroke="white" stroke-width="46" stroke-linecap="round" />
-    <line x1="82" y1="389" x2="266" y2="389" stroke="white" stroke-width="46" stroke-linecap="round" />
-
-    <!-- Front wheel -->
-    <circle cx="614" cy="501" r="92" fill="white" />
-
-    <!-- Rear wheel -->
-    <circle cx="307" cy="501" r="92" fill="white" />
+  <circle cx="512" cy="512" r="490" fill="url(#bg)"/>
+  <g transform="translate(-208, 134.4) scale(2.88)">
+    <g transform="${INNER}" fill="white" stroke="none">
+${renderPaths(carPaths)}
+    </g>
   </g>
-
-  <!-- Plus badge -->
-  <g transform="translate(680, 82)">
-    <circle cx="120" cy="120" r="120" fill="#10B981" />
-    <circle cx="120" cy="120" r="110" fill="#10B981" />
-    <line x1="120" y1="65" x2="120" y2="175" stroke="white" stroke-width="32" stroke-linecap="round" />
-    <line x1="65" y1="120" x2="175" y2="120" stroke="white" stroke-width="32" stroke-linecap="round" />
+  <g transform="translate(710, 100)">
+    <circle cx="105" cy="105" r="108" fill="white" opacity="0.2"/>
+    <circle cx="105" cy="105" r="100" fill="#10B981"/>
+    <line x1="105" y1="60" x2="105" y2="150" stroke="white" stroke-width="26" stroke-linecap="round"/>
+    <line x1="60" y1="105" x2="150" y2="105" stroke="white" stroke-width="26" stroke-linecap="round"/>
   </g>
-</svg>
-`;
+</svg>`;
 
-// Adaptive icon foreground - same car but centered for Android safe zone
-const adaptiveIconSvg = `
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+// ============================================================
+// 2. Adaptive Icon (1024x1024) - smaller car within safe zone
+// Car center (250,120) → canvas (512, 490). Scale: 600/260 ≈ 2.3
+// ============================================================
+const adaptiveIconSvg = `<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2563EB" />
-      <stop offset="100%" stop-color="#06B6D4" />
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1E40AF"/>
     </linearGradient>
-    <clipPath id="speedClip2">
-      <rect x="0" y="0" width="1024" height="368"/>
-      <rect x="0" y="410" width="1024" height="42"/>
-      <rect x="0" y="492" width="1024" height="532"/>
-    </clipPath>
   </defs>
-
-  <!-- Background - transparent, Android will add shape -->
-  <circle cx="512" cy="512" r="490" fill="url(#bg)" />
-
-  <!-- Car silhouette - slightly smaller and more centered -->
-  <g transform="translate(145, 225)">
-    <path
-      d="M160 390 L195 267 C212 231 250 195 284 195 L480 195 C515 195 553 231 570 267 L623 355 L641 390 C641 408 623 426 605 426 L178 426 C160 426 142 408 160 390 Z"
-      fill="white"
-      clip-path="url(#speedClip2)"
-    />
-
-    <!-- Windshield -->
-    <path
-      d="M320 200 L250 325 L516 325 L480 200 Z"
-      fill="white"
-      opacity="0.4"
-      clip-path="url(#speedClip2)"
-    />
-
-    <!-- Speed lines -->
-    <line x1="35" y1="267" x2="195" y2="267" stroke="white" stroke-width="40" stroke-linecap="round" />
-    <line x1="70" y1="338" x2="231" y2="338" stroke="white" stroke-width="40" stroke-linecap="round" />
-
-    <!-- Front wheel -->
-    <circle cx="534" cy="435" r="80" fill="white" />
-
-    <!-- Rear wheel -->
-    <circle cx="267" cy="435" r="80" fill="white" />
+  <circle cx="512" cy="512" r="490" fill="url(#bg)"/>
+  <g transform="translate(-63, 214) scale(2.3)">
+    <g transform="${INNER}" fill="white" stroke="none">
+${renderPaths(carPaths)}
+    </g>
   </g>
-
-  <!-- Plus badge -->
-  <g transform="translate(660, 115)">
-    <circle cx="100" cy="100" r="100" fill="#10B981" />
-    <line x1="100" y1="55" x2="100" y2="145" stroke="white" stroke-width="26" stroke-linecap="round" />
-    <line x1="55" y1="100" x2="145" y2="100" stroke="white" stroke-width="26" stroke-linecap="round" />
+  <g transform="translate(680, 140)">
+    <circle cx="85" cy="85" r="88" fill="white" opacity="0.2"/>
+    <circle cx="85" cy="85" r="82" fill="#10B981"/>
+    <line x1="85" y1="48" x2="85" y2="122" stroke="white" stroke-width="20" stroke-linecap="round"/>
+    <line x1="48" y1="85" x2="122" y2="85" stroke="white" stroke-width="20" stroke-linecap="round"/>
   </g>
-</svg>
+</svg>`;
+
+// ============================================================
+// 3. Splash Icon (600x700) - car + "Habilitar+" text for iOS
+// Full logo center (260,144) → canvas (300, 250). Scale: 520/280 ≈ 1.86
+// ============================================================
+const splashIconSvg = `<svg width="600" height="700" viewBox="0 0 600 700" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="300" cy="220" r="180" fill="white" opacity="0.05"/>
+  <g transform="translate(-183.6, -17.8) scale(1.86)">
+    <g transform="${INNER}" fill="white" stroke="none">
+${renderPaths(carPaths)}
+${renderPaths(textPaths)}
+    </g>
+  </g>
+  <text x="300" y="470" font-family="Arial, Helvetica, sans-serif" font-weight="500" font-size="20" fill="white" opacity="0.9" text-anchor="middle" letter-spacing="5">AUTOESCOLA DIGITAL</text>
+</svg>`;
+
+// ============================================================
+// 4. Splash Android Icon (288x288) - transparent bg, for Android 12+
+// Full logo center (260,144) → canvas (144, 120). Scale: 250/280 ≈ 0.89
+// ============================================================
+const splashAndroidIconSvg = `<svg width="288" height="288" viewBox="0 0 288 288" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(-87.4, -8.2) scale(0.89)">
+    <g transform="${INNER}" fill="white" stroke="none">
+${renderPaths(carPaths)}
+${renderPaths(textPaths)}
+    </g>
+  </g>
+  <text x="144" y="220" font-family="Arial, Helvetica, sans-serif" font-weight="500" font-size="11" fill="white" opacity="0.9" text-anchor="middle" letter-spacing="4">AUTOESCOLA DIGITAL</text>
+</svg>`;
+
+// ============================================================
+// Generate constants/logoPaths.ts for React Native components
+// ============================================================
+function generateConstants() {
+  const esc = d => d.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const content = `// Auto-generated from assets/images/15117491.svg
+// Run: node scripts/generate-icons.js
+
+export const CAR_PATHS: string[] = [
+${carPaths.map(d => `  '${esc(d)}'`).join(',\n')}
+];
+
+export const TEXT_PATHS: string[] = [
+${textPaths.map(d => `  '${esc(d)}'`).join(',\n')}
+];
+
+export const SVG_INNER_TRANSFORM = '${INNER}';
+
+// Bounding boxes in display coordinates (after inner transform)
+export const CAR_BOUNDS = { x: 120, y: 65, width: 260, height: 110 };
+export const FULL_LOGO_BOUNDS = { x: 120, y: 65, width: 280, height: 160 };
 `;
 
-// Splash icon SVG (just the white car + badge, no background, rendered at 600x600)
-const splashIconSvg = `
-<svg width="600" height="600" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <clipPath id="splashClip">
-      <rect x="0" y="0" width="600" height="215"/>
-      <rect x="0" y="240" width="600" height="25"/>
-      <rect x="0" y="288" width="600" height="312"/>
-    </clipPath>
-  </defs>
+  fs.writeFileSync(path.join(constantsDir, 'logoPaths.ts'), content);
+  console.log('✓ constants/logoPaths.ts');
+}
 
-  <!-- Subtle white circle glow -->
-  <circle cx="280" cy="320" r="260" fill="white" opacity="0.1" />
-
-  <!-- Car silhouette -->
-  <g transform="translate(30, 120)">
-    <path
-      d="M108 265 L132 182 C144 158 168 132 192 132 L408 132 C432 132 456 158 468 182 L516 246 L534 265 C534 278 522 290 510 290 L120 290 C108 290 96 278 108 265 Z"
-      fill="white"
-      clip-path="url(#splashClip)"
-    />
-
-    <!-- Windshield -->
-    <path
-      d="M264 136 L210 225 L432 225 L400 136 Z"
-      fill="white"
-      opacity="0.35"
-      clip-path="url(#splashClip)"
-    />
-
-    <!-- Speed lines -->
-    <line x1="24" y1="182" x2="132" y2="182" stroke="white" stroke-width="28" stroke-linecap="round" />
-    <line x1="48" y1="230" x2="156" y2="230" stroke="white" stroke-width="28" stroke-linecap="round" />
-
-    <!-- Front wheel -->
-    <circle cx="444" cy="298" r="56" fill="white" />
-
-    <!-- Rear wheel -->
-    <circle cx="180" cy="298" r="56" fill="white" />
-  </g>
-
-  <!-- Plus badge -->
-  <g transform="translate(430, 50)">
-    <circle cx="70" cy="70" r="70" fill="#10B981" />
-    <line x1="70" y1="38" x2="70" y2="102" stroke="white" stroke-width="18" stroke-linecap="round" />
-    <line x1="38" y1="70" x2="102" y2="70" stroke="white" stroke-width="18" stroke-linecap="round" />
-  </g>
-</svg>
-`;
-
+// ============================================================
+// Generate all icon PNGs
+// ============================================================
 async function generateIcons() {
-  console.log('Generating app icons...');
+  console.log('Generating icons from original SVG...\n');
 
-  // icon.png - 1024x1024
-  await sharp(Buffer.from(iconSvg))
-    .resize(1024, 1024)
-    .png()
-    .toFile(path.join(outputDir, 'icon.png'));
+  generateConstants();
+
+  await sharp(Buffer.from(iconSvg)).resize(1024, 1024).png().toFile(path.join(outputDir, 'icon.png'));
   console.log('✓ icon.png (1024x1024)');
 
-  // adaptive-icon.png - 1024x1024
-  await sharp(Buffer.from(adaptiveIconSvg))
-    .resize(1024, 1024)
-    .png()
-    .toFile(path.join(outputDir, 'adaptive-icon.png'));
+  await sharp(Buffer.from(adaptiveIconSvg)).resize(1024, 1024).png().toFile(path.join(outputDir, 'adaptive-icon.png'));
   console.log('✓ adaptive-icon.png (1024x1024)');
 
-  // favicon.png - 48x48
-  await sharp(Buffer.from(iconSvg))
-    .resize(48, 48)
-    .png()
-    .toFile(path.join(outputDir, 'favicon.png'));
+  await sharp(Buffer.from(iconSvg)).resize(48, 48).png().toFile(path.join(outputDir, 'favicon.png'));
   console.log('✓ favicon.png (48x48)');
 
-  // splash.png - 1284x2778 (composited: solid blue bg + large white icon)
-  const splashWidth = 1284;
-  const splashHeight = 2778;
-  const iconSize = 600;
+  await sharp(Buffer.from(splashAndroidIconSvg)).resize(288, 288).png().toFile(path.join(outputDir, 'splash-icon.png'));
+  console.log('✓ splash-icon.png (288x288)');
 
-  // Render the icon SVG to a buffer
-  const iconBuffer = await sharp(Buffer.from(splashIconSvg))
-    .resize(iconSize, iconSize)
-    .png()
-    .toBuffer();
+  // Full splash: compose logo on gradient background
+  const splashW = 1284, splashH = 2778;
+  const logoW = 600, logoH = 700;
+  const logoBuf = await sharp(Buffer.from(splashIconSvg)).resize(logoW, logoH).png().toBuffer();
 
-  // Create solid blue background and composite the icon centered
-  const iconLeft = Math.round((splashWidth - iconSize) / 2);
-  const iconTop = Math.round((splashHeight - iconSize) / 2) - 100; // slightly above center
+  const bgSvg = `<svg width="${splashW}" height="${splashH}" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="g" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1E40AF"/>
+    </linearGradient></defs>
+    <rect width="${splashW}" height="${splashH}" fill="url(#g)"/>
+  </svg>`;
+  const bgBuf = await sharp(Buffer.from(bgSvg)).resize(splashW, splashH).png().toBuffer();
 
-  await sharp({
-    create: {
-      width: splashWidth,
-      height: splashHeight,
-      channels: 4,
-      background: { r: 37, g: 99, b: 235, alpha: 1 }, // #2563EB
-    },
-  })
-    .composite([
-      { input: iconBuffer, left: iconLeft, top: iconTop },
-    ])
+  await sharp(bgBuf)
+    .composite([{
+      input: logoBuf,
+      left: Math.round((splashW - logoW) / 2),
+      top: Math.round((splashH - logoH) / 2) - 150
+    }])
     .png()
     .toFile(path.join(outputDir, 'splash.png'));
   console.log('✓ splash.png (1284x2778)');

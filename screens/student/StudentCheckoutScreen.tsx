@@ -15,7 +15,7 @@ type Props = NativeStackScreenProps<StudentStackParamList, 'StudentCheckout'>;
 
 export default function StudentCheckoutScreen({ navigation, route }: Props) {
   const { instructorId } = route.params;
-  const { instructors, addAppointment, currentStudent, savedAddresses } = useAuth();
+  const { instructors, appointments, addAppointment, currentStudent, savedAddresses } = useAuth();
 
   const instructor = instructors.find((inst) => inst.id === instructorId);
 
@@ -58,10 +58,45 @@ export default function StudentCheckoutScreen({ navigation, route }: Props) {
       return;
     }
 
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const activeStatuses = ['Pendente', 'Aceita'];
+
+    // Check if instructor already has an appointment at this date/time
+    const instructorConflict = appointments.find(
+      (a) =>
+        a.instructorId === instructor.id &&
+        a.date === dateStr &&
+        a.time === selectedTime &&
+        activeStatuses.includes(a.status)
+    );
+    if (instructorConflict) {
+      Alert.alert(
+        'Horario indisponivel',
+        'Este instrutor ja possui uma aula agendada neste dia e horario. Escolha outro horario.'
+      );
+      return;
+    }
+
+    // Check if student already has an appointment at this date/time
+    const studentConflict = appointments.find(
+      (a) =>
+        a.studentId === currentStudent.id &&
+        a.date === dateStr &&
+        a.time === selectedTime &&
+        activeStatuses.includes(a.status)
+    );
+    if (studentConflict) {
+      Alert.alert(
+        'Conflito de horario',
+        'Voce ja possui uma aula agendada neste dia e horario. Escolha outro horario.'
+      );
+      return;
+    }
+
     const newAppointment = {
       studentId: currentStudent.id,
       instructorId: instructor.id,
-      date: format(selectedDate, 'yyyy-MM-dd'),
+      date: dateStr,
       time: selectedTime,
       location: `${selectedAddress.street}, ${selectedAddress.neighborhood}`,
       price: basePrice,

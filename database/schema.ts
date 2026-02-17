@@ -1,6 +1,6 @@
 import { SQLiteDatabase } from 'expo-sqlite';
 
-const DB_VERSION = 4;
+const DB_VERSION = 6;
 
 const CREATE_TABLES = `
 CREATE TABLE IF NOT EXISTS instructors (
@@ -72,7 +72,9 @@ CREATE TABLE IF NOT EXISTS saved_addresses (
   id TEXT PRIMARY KEY NOT NULL,
   label TEXT NOT NULL,
   street TEXT NOT NULL,
-  neighborhood TEXT NOT NULL
+  neighborhood TEXT NOT NULL,
+  student_id TEXT,
+  FOREIGN KEY (student_id) REFERENCES students(id)
 );
 
 CREATE TABLE IF NOT EXISTS favorites (
@@ -185,6 +187,36 @@ export async function initializeSchema(db: SQLiteDatabase): Promise<void> {
       );
     } catch {
       // Column may already exist, ignore
+    }
+  }
+
+  // Migration v4 -> v5: add student_id to saved_addresses + reset session
+  if (currentVersion >= 1 && currentVersion < 5) {
+    try {
+      await db.execAsync("ALTER TABLE saved_addresses ADD COLUMN student_id TEXT;");
+    } catch {
+      // Column may already exist, ignore
+    }
+    // Associate existing addresses with demo student
+    try {
+      await db.execAsync("UPDATE saved_addresses SET student_id = 'stud1' WHERE student_id IS NULL;");
+    } catch {
+      // Ignore
+    }
+    // Clear login session so user must re-authenticate with scoped data
+    try {
+      await db.execAsync("DELETE FROM settings WHERE key IN ('userRole', 'currentUserId');");
+    } catch {
+      // Ignore
+    }
+  }
+
+  // Migration v5 -> v6: force session reset for users upgrading from previous APK
+  if (currentVersion >= 5 && currentVersion < 6) {
+    try {
+      await db.execAsync("DELETE FROM settings WHERE key IN ('userRole', 'currentUserId');");
+    } catch {
+      // Ignore
     }
   }
 

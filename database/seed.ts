@@ -188,12 +188,12 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
 
     // --- Saved Addresses ---
     await db.runAsync(
-      'INSERT INTO saved_addresses (id, label, street, neighborhood) VALUES (?, ?, ?, ?)',
-      ['addr1', 'Casa', 'Rua Ponta Negra, 123', 'Ponta Negra']
+      'INSERT INTO saved_addresses (id, label, street, neighborhood, student_id) VALUES (?, ?, ?, ?, ?)',
+      ['addr1', 'Casa', 'Rua Ponta Negra, 123', 'Ponta Negra', 'stud1']
     );
     await db.runAsync(
-      'INSERT INTO saved_addresses (id, label, street, neighborhood) VALUES (?, ?, ?, ?)',
-      ['addr2', 'Trabalho', 'Av. Djalma Batista, 456', 'Flores']
+      'INSERT INTO saved_addresses (id, label, street, neighborhood, student_id) VALUES (?, ?, ?, ?, ?)',
+      ['addr2', 'Trabalho', 'Av. Djalma Batista, 456', 'Flores', 'stud1']
     );
 
     // --- Locations ---

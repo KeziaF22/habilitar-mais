@@ -119,7 +119,8 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
@@ -246,6 +247,7 @@ export default function ProfileScreen() {
         <Text style={styles.logoutButtonText}>Sair</Text>
       </TouchableOpacity>
     </ScrollView>
+    </KeyboardAvoidingView>
 
       {/* Add Address Modal */}
       <Modal
@@ -256,7 +258,7 @@ export default function ProfileScreen() {
       >
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior="padding"
         >
           <TouchableOpacity
             style={styles.modalOverlayTouchable}

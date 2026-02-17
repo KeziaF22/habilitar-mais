@@ -235,7 +235,7 @@ export default function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
       >
         <View style={styles.modalOverlay}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior="padding"
             style={styles.modalKeyboard}
           >
             <View style={styles.modalCard}>

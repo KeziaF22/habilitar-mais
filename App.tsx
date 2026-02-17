@@ -24,6 +24,7 @@ import InstructorSignupScreen from '@/screens/instructor/InstructorSignupScreen'
 import InstructorAgendaScreen from '@/screens/instructor/InstructorAgendaScreen';
 import InstructorWalletScreen from '@/screens/instructor/InstructorWalletScreen';
 import InstructorProfileScreen from '@/screens/instructor/InstructorProfileScreen';
+import WelcomeTutorialScreen from '@/screens/WelcomeTutorialScreen';
 import { StudentStackParamList, StudentTabParamList, InstructorTabParamList } from '@/navigation/types';
 
 enableScreens();
@@ -208,11 +209,13 @@ function RootNavigator() {
     userRole,
     isLoading,
     signupStage,
+    showTutorial,
     setSignupStage,
     login,
     signupStudent,
     signupInstructor,
     completeStudentProfile,
+    completeTutorial,
   } = useAuth();
   const [authScreen, setAuthScreen] = React.useState<AuthScreen>('login');
 
@@ -306,6 +309,16 @@ function RootNavigator() {
       <LoginScreen
         onSignup={() => setAuthScreen('choose_role')}
         onLogin={login}
+      />
+    );
+  }
+
+  // Show tutorial for new users
+  if (showTutorial && userRole) {
+    return (
+      <WelcomeTutorialScreen
+        role={userRole}
+        onComplete={completeTutorial}
       />
     );
   }

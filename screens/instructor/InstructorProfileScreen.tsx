@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Car, Edit2, LogOut, Mail, MapPin, Phone, Star, User } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
@@ -45,7 +45,8 @@ export default function InstructorProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
       {/* Header with Cover and Profile Image */}
       <View style={styles.coverContainer}>
         <Image source={{ uri: currentInstructor.coverImage }} style={styles.coverImage} />
@@ -162,6 +163,7 @@ export default function InstructorProfileScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

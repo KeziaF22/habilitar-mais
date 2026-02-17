@@ -69,7 +69,7 @@ export default function SignupScreen({ onSignupComplete, onBackToLogin }: Signup
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
     >
       <LinearGradient
         colors={[Colors.light.primary, Colors.light.primaryDark]}

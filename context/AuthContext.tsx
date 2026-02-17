@@ -94,6 +94,7 @@ interface AuthContextType {
   isLoading: boolean;
   userRole: UserRole;
   signupStage: SignupStage;
+  showTutorial: boolean;
   currentStudent: Student;
   currentInstructor: Instructor | null;
   students: Student[];
@@ -109,6 +110,7 @@ interface AuthContextType {
   signupInstructor: (data: InstructorSignupData) => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  completeTutorial: () => void;
   completeStudentProfile: () => Promise<void>;
   completeInstructorProfile: (data: InstructorProfileData) => Promise<void>;
   addAppointment: (appointment: Omit<Appointment, 'id' | 'status'>) => void;
@@ -145,6 +147,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [favoriteInstructorIds, setFavoriteInstructorIds] = useState<string[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // Initialize database and load all data
   useEffect(() => {
@@ -160,7 +163,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           dbInstructors,
           dbStudents,
           dbAppointments,
-          dbAddresses,
           dbLocations,
           dbRole,
           dbUserId,
@@ -168,7 +170,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           InstructorRepo.getAllInstructors(),
           StudentRepo.getAllStudents(),
           AppointmentRepo.getAllAppointments(),
-          AddressRepo.getAllSavedAddresses(),
           LocationRepo.getAllLocations(),
           SettingsRepo.getSetting('userRole'),
           SettingsRepo.getSetting('currentUserId'),
@@ -179,7 +180,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setInstructors(dbInstructors);
         setStudents(dbStudents);
         setAppointments(dbAppointments);
-        setSavedAddresses(dbAddresses);
         setLocations(dbLocations);
 
         // Load the correct user based on stored userId
@@ -200,25 +200,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (loadedStudent) {
           setCurrentStudent(loadedStudent);
-        } else if (dbStudents.length > 0) {
-          setCurrentStudent(dbStudents[0]);
+          // Load addresses and favorites scoped to this student
+          const [studentAddresses, favIds] = await Promise.all([
+            AddressRepo.getSavedAddressesByStudent(loadedStudent.id),
+            FavoriteRepo.getFavoriteInstructorIds(loadedStudent.id),
+          ]);
+          if (mounted) {
+            setSavedAddresses(studentAddresses);
+            setFavoriteInstructorIds(favIds);
+          }
+        } else {
+          setSavedAddresses([]);
+          setFavoriteInstructorIds([]);
         }
 
         if (loadedInstructor) {
           setCurrentInstructor(loadedInstructor);
-        } else if (dbInstructors.length > 0) {
-          setCurrentInstructor(dbInstructors[0]);
         }
 
         if (dbRole === 'student' || dbRole === 'instructor') {
           setUserRoleState(dbRole);
-        }
-
-        // Load favorites for current student
-        const studentForFavorites = loadedStudent || (dbStudents.length > 0 ? dbStudents[0] : null);
-        if (studentForFavorites) {
-          const favIds = await FavoriteRepo.getFavoriteInstructorIds(studentForFavorites.id);
-          if (mounted) setFavoriteInstructorIds(favIds);
+          // Check tutorial flag
+          const tutorialKey = `hasSeenTutorial_${dbUserId}`;
+          const hasSeen = await SettingsRepo.getSetting(tutorialKey);
+          if (mounted && !hasSeen) {
+            setShowTutorial(true);
+          }
         }
       } catch (error) {
         console.error('Failed to initialize database:', error);
@@ -309,8 +316,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setCurrentUserId(userId);
     setCurrentStudent(newStudent);
     setStudents(prev => [...prev, newStudent]);
+    setSavedAddresses([]);
+    setFavoriteInstructorIds([]);
     setUserRoleState('student');
     setSignupStage('idle');
+    setShowTutorial(true);
 
     await SettingsRepo.setSetting('currentUserId', userId);
     await SettingsRepo.setSetting('userRole', 'student');
@@ -375,6 +385,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setInstructors(prev => [...prev, newInstructor]);
     setUserRoleState('instructor');
     setSignupStage('idle');
+    setShowTutorial(true);
 
     await SettingsRepo.setSetting('currentUserId', userId);
     await SettingsRepo.setSetting('userRole', 'instructor');
@@ -396,7 +407,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (user.role === 'student' && user.student_id) {
       const student = await StudentRepo.getStudentById(user.student_id);
-      if (student) setCurrentStudent(student);
+      if (student) {
+        setCurrentStudent(student);
+        const [studentAddresses, favIds] = await Promise.all([
+          AddressRepo.getSavedAddressesByStudent(student.id),
+          FavoriteRepo.getFavoriteInstructorIds(student.id),
+        ]);
+        setSavedAddresses(studentAddresses);
+        setFavoriteInstructorIds(favIds);
+      }
       setUserRoleState('student');
       await SettingsRepo.setSetting('userRole', 'student');
       setSignupStage('idle');
@@ -410,8 +429,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSignupStage('choose_role');
     }
 
+    // Check tutorial flag
+    const hasSeen = await SettingsRepo.getSetting(`hasSeenTutorial_${user.id}`);
+    if (!hasSeen) {
+      setShowTutorial(true);
+    }
+
     return true;
   }, []);
+
+  const completeTutorial = useCallback(async () => {
+    setShowTutorial(false);
+    if (currentUserId) {
+      await SettingsRepo.setSetting(`hasSeenTutorial_${currentUserId}`, 'true');
+    }
+  }, [currentUserId]);
 
   const logout = useCallback(() => {
     setUserRoleState(null);
@@ -420,6 +452,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setPendingSignupData(null);
     setCurrentStudent({ id: '', name: '' });
     setCurrentInstructor(null);
+    setSavedAddresses([]);
+    setFavoriteInstructorIds([]);
+    setShowTutorial(false);
     SettingsRepo.setSetting('userRole', null).catch(console.error);
     SettingsRepo.setSetting('currentUserId', null).catch(console.error);
   }, []);
@@ -537,8 +572,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       id: generateId('addr'),
     };
     setSavedAddresses((prev) => [...prev, newAddress]);
-    AddressRepo.addSavedAddress(newAddress).catch(console.error);
-  }, []);
+    AddressRepo.addSavedAddress(newAddress, currentStudent.id).catch(console.error);
+  }, [currentStudent.id]);
 
   const removeSavedAddress = useCallback((id: string) => {
     setSavedAddresses((prev) => prev.filter((addr) => addr.id !== id));
@@ -549,6 +584,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isLoading,
     userRole,
     signupStage,
+    showTutorial,
     currentStudent,
     currentInstructor,
     students,
@@ -564,6 +600,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     signupInstructor,
     login,
     logout,
+    completeTutorial,
     completeStudentProfile,
     completeInstructorProfile,
     addAppointment,

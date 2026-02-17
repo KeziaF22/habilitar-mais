@@ -10,13 +10,14 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
   await db.withTransactionAsync(async () => {
     // --- Instructors ---
     await db.runAsync(
-      `INSERT INTO instructors (id, name, car, carImage, rating, pricePerHour, transmission, bio, reviews, availability, profileImage, coverImage, specialties, isAvailable, location, latitude, longitude)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO instructors (id, name, car, carImage, vehicleType, rating, pricePerHour, transmission, bio, reviews, availability, profileImage, coverImage, specialties, isAvailable, location, latitude, longitude)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         'inst1',
         'Carlos Santos',
         'Honda City',
         'https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=400&h=300&fit=crop',
+        'Carro',
         4.8,
         80.0,
         'Auto',
@@ -42,13 +43,14 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
     );
 
     await db.runAsync(
-      `INSERT INTO instructors (id, name, car, carImage, rating, pricePerHour, transmission, bio, reviews, availability, profileImage, coverImage, specialties, isAvailable, location, latitude, longitude)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO instructors (id, name, car, carImage, vehicleType, rating, pricePerHour, transmission, bio, reviews, availability, profileImage, coverImage, specialties, isAvailable, location, latitude, longitude)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         'inst2',
         'Ana Costa',
         'Hyundai HB20',
         'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=400&h=300&fit=crop',
+        'Carro',
         4.9,
         75.0,
         'Manual',
@@ -74,13 +76,14 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
     );
 
     await db.runAsync(
-      `INSERT INTO instructors (id, name, car, carImage, rating, pricePerHour, transmission, bio, reviews, availability, profileImage, coverImage, specialties, isAvailable, location, latitude, longitude)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO instructors (id, name, car, carImage, vehicleType, rating, pricePerHour, transmission, bio, reviews, availability, profileImage, coverImage, specialties, isAvailable, location, latitude, longitude)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         'inst3',
         'Marcos Oliveira',
         'Chevrolet Onix',
         'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=400&h=300&fit=crop',
+        'Carro',
         4.7,
         85.0,
         'Auto',
@@ -102,6 +105,70 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
         'Ponta Negra',
         -3.0800,
         -60.1100,
+      ]
+    );
+
+    // Instructor 4 - Moto
+    await db.runAsync(
+      `INSERT INTO instructors (id, name, car, carImage, vehicleType, rating, pricePerHour, transmission, bio, reviews, availability, profileImage, coverImage, specialties, isAvailable, location, latitude, longitude)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        'inst4',
+        'Rafael Souza',
+        'Honda CG 160',
+        'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&h=300&fit=crop',
+        'Moto',
+        4.6,
+        60.0,
+        'Manual',
+        'Instrutor de moto com 8 anos de experiência. Foco em pilotagem segura e defensiva.',
+        JSON.stringify([
+          { student: 'Thiago Reis', comment: 'Excelente instrutor de moto!', rating: 5 },
+        ]),
+        JSON.stringify([
+          { day: 'Seg', time: '07:00' },
+          { day: 'Ter', time: '07:00' },
+          { day: 'Qua', time: '14:00' },
+        ]),
+        'https://randomuser.me/api/portraits/men/45.jpg',
+        'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=600&h=300&fit=crop',
+        JSON.stringify(['Pilotagem Defensiva', 'Primeira Habilitação Moto']),
+        1,
+        'Adrianópolis',
+        -3.1000,
+        -60.0300,
+      ]
+    );
+
+    // Instructor 5 - Caminhão
+    await db.runAsync(
+      `INSERT INTO instructors (id, name, car, carImage, vehicleType, rating, pricePerHour, transmission, bio, reviews, availability, profileImage, coverImage, specialties, isAvailable, location, latitude, longitude)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        'inst5',
+        'Roberto Lima',
+        'Mercedes-Benz Atego 1719',
+        'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=400&h=300&fit=crop',
+        'Caminhão',
+        4.5,
+        120.0,
+        'Manual',
+        'Instrutor habilitado para veículos pesados. Experiência com formação de motoristas profissionais.',
+        JSON.stringify([
+          { student: 'Fernando Costa', comment: 'Profissional e paciente.', rating: 5 },
+        ]),
+        JSON.stringify([
+          { day: 'Seg', time: '06:00' },
+          { day: 'Qua', time: '06:00' },
+          { day: 'Sex', time: '06:00' },
+        ]),
+        'https://randomuser.me/api/portraits/men/52.jpg',
+        'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=600&h=300&fit=crop',
+        JSON.stringify(['Veículos Pesados', 'Direção Rodoviária', 'Habilitação Profissional']),
+        1,
+        'Distrito Industrial',
+        -3.1400,
+        -59.9800,
       ]
     );
 

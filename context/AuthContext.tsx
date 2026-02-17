@@ -16,11 +16,14 @@ import type { StudentSignupData } from '@/screens/StudentSignupScreen';
 import type { InstructorSignupData } from '@/screens/instructor/InstructorSignupScreen';
 
 // --- Type Definitions ---
+export type VehicleType = 'Carro' | 'Moto' | 'Caminhão' | 'Ônibus' | 'Articulado';
+
 export type Instructor = {
   id: string;
   name: string;
   car: string;
   carImage: string;
+  vehicleType: VehicleType;
   rating: number;
   pricePerHour: number;
   transmission: 'Manual' | 'Auto';
@@ -63,7 +66,7 @@ export type Appointment = {
   date: string;
   time: string;
   location: string;
-  status: 'Pendente' | 'Aceita' | 'Recusada';
+  status: 'Pendente' | 'Aceita' | 'Recusada' | 'Cancelada';
   price: number;
   address?: string;
   paymentMethod?: PaymentMethod;
@@ -109,7 +112,8 @@ interface AuthContextType {
   completeStudentProfile: () => Promise<void>;
   completeInstructorProfile: (data: InstructorProfileData) => Promise<void>;
   addAppointment: (appointment: Omit<Appointment, 'id' | 'status'>) => void;
-  updateAppointmentStatus: (id: string, status: 'Aceita' | 'Recusada') => void;
+  updateAppointmentStatus: (id: string, status: 'Aceita' | 'Recusada' | 'Cancelada') => void;
+  cancelAppointment: (id: string) => void;
   toggleFavorite: (instructorId: string) => void;
   updateStudentInfo: (updates: Partial<Student>) => void;
   updateInstructorInfo: (updates: Partial<Instructor>) => void;
@@ -290,6 +294,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       birthDate: data.birthDate,
     };
 
+    // Create student FIRST (before user) to satisfy foreign key constraint
+    await StudentRepo.addStudent(newStudent);
+
     await UserRepo.createUser({
       id: userId,
       email: data.email,
@@ -298,8 +305,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       student_id: studentId,
       instructor_id: null,
     });
-
-    await StudentRepo.addStudent(newStudent);
 
     setCurrentUserId(userId);
     setCurrentStudent(newStudent);
@@ -338,6 +343,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       name: data.name,
       car: `${data.brand} ${data.carModel}`,
       carImage: '',
+      vehicleType: data.vehicleType || 'Carro',
       rating: 0,
       pricePerHour: price,
       transmission: data.transmission,
@@ -352,6 +358,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       coordinates: { latitude: 0, longitude: 0 },
     };
 
+    // Create instructor FIRST (before user) to satisfy foreign key constraint
+    await InstructorRepo.addInstructor(newInstructor);
+
     await UserRepo.createUser({
       id: userId,
       email: data.email,
@@ -360,8 +369,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       student_id: null,
       instructor_id: instructorId,
     });
-
-    await InstructorRepo.addInstructor(newInstructor);
 
     setCurrentUserId(userId);
     setCurrentInstructor(newInstructor);
@@ -428,6 +435,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       phone: pendingSignupData.phone,
     };
 
+    // Create student FIRST (before updating user FK) to satisfy foreign key constraint
     await StudentRepo.addStudent(newStudent);
     await UserRepo.updateUserRole(currentUserId, 'student', studentId);
 
@@ -449,6 +457,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       name: data.fullName || pendingSignupData.name,
       car: data.carModel,
       carImage: '',
+      vehicleType: 'Carro',
       rating: 0,
       pricePerHour: 0,
       transmission: data.transmission,
@@ -463,6 +472,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       coordinates: { latitude: 0, longitude: 0 },
     };
 
+    // Create instructor FIRST (before updating user FK) to satisfy foreign key constraint
     await InstructorRepo.addInstructor(newInstructor);
     await UserRepo.updateUserRole(currentUserId, 'instructor', instructorId);
 
@@ -485,12 +495,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     AppointmentRepo.addAppointment(appointment).catch(console.error);
   }, []);
 
-  const updateAppointmentStatus = useCallback((id: string, status: 'Aceita' | 'Recusada') => {
+  const updateAppointmentStatus = useCallback((id: string, status: 'Aceita' | 'Recusada' | 'Cancelada') => {
     setAppointments((prev) =>
       prev.map((appt) => (appt.id === id ? { ...appt, status } : appt))
     );
     AppointmentRepo.updateAppointmentStatus(id, status).catch(console.error);
   }, []);
+
+  const cancelAppointment = useCallback((id: string) => {
+    updateAppointmentStatus(id, 'Cancelada');
+  }, [updateAppointmentStatus]);
 
   const toggleFavorite = useCallback((instructorId: string) => {
     setFavoriteInstructorIds((prev) => {
@@ -554,6 +568,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     completeInstructorProfile,
     addAppointment,
     updateAppointmentStatus,
+    cancelAppointment,
     toggleFavorite,
     updateStudentInfo,
     updateInstructorInfo,

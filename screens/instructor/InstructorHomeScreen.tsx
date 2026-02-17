@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Switch, TouchableOpacity, Alert } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, Switch, Alert, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DollarSign, Car, Star } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
@@ -9,7 +9,7 @@ import NextClassCard from '@/components/NextClassCard';
 import DailyChecklist from '@/components/DailyChecklist';
 
 export default function InstructorHomeScreen() {
-  const { currentInstructor } = useAuth();
+  const { currentInstructor, appointments, students } = useAuth();
   const [isAvailable, setIsAvailable] = useState(true);
 
   const [checklistItems, setChecklistItems] = useState([
@@ -18,19 +18,65 @@ export default function InstructorHomeScreen() {
     { id: '3', label: 'Limpeza', completed: true },
   ]);
 
-  // Mock data - replace with real data from context
-  const todayEarnings = 240;
-  const classesCompleted = 3;
-  const totalClassesToday = 5;
-  const rating = 4.8;
+  const [classStarted, setClassStarted] = useState(false);
 
-  // Mock next class data
-  const nextClass = {
-    studentName: 'João Paulo',
-    studentAvatar: 'https://ui-avatars.com/api/?name=Joao+Paulo&background=1E3A5F&color=fff',
-    classNumber: 'Aula 1/10',
-    address: 'Rua Ponta Negra, 123',
-  };
+  const { todayEarnings, classesCompleted, totalClassesToday, nextClass } = useMemo(() => {
+    if (!currentInstructor) {
+      return { todayEarnings: 0, classesCompleted: 0, totalClassesToday: 0, nextClass: null };
+    }
+
+    const myAppointments = appointments.filter(
+      (apt) => apt.instructorId === currentInstructor.id
+    );
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    const todayAccepted = myAppointments.filter(
+      (apt) => apt.date === todayStr && apt.status === 'Aceita'
+    );
+    const todayAll = myAppointments.filter(
+      (apt) => apt.date === todayStr && apt.status !== 'Recusada' && apt.status !== 'Cancelada'
+    );
+
+    const earnings = todayAccepted.reduce((sum, apt) => sum + (apt.totalPrice ?? apt.price), 0);
+
+    // Next upcoming accepted appointment (today or future)
+    const upcoming = myAppointments
+      .filter((apt) => apt.status === 'Aceita' && apt.date >= todayStr)
+      .sort((a, b) => {
+        const dateCompare = a.date.localeCompare(b.date);
+        if (dateCompare !== 0) return dateCompare;
+        return a.time.localeCompare(b.time);
+      });
+
+    const nextApt = upcoming[0] ?? null;
+
+    let nextClassData = null;
+    if (nextApt) {
+      const student = students.find((s) => s.id === nextApt.studentId);
+      const studentName = student?.name ?? 'Aluno';
+      const encodedName = encodeURIComponent(studentName);
+
+      nextClassData = {
+        appointmentId: nextApt.id,
+        studentName,
+        studentAvatar: `https://ui-avatars.com/api/?name=${encodedName}&background=1E3A5F&color=fff`,
+        classNumber: `${nextApt.time} - ${nextApt.date.split('-').reverse().join('/')}`,
+        address: nextApt.address ?? nextApt.location,
+        phone: student?.phone ?? '',
+      };
+    }
+
+    return {
+      todayEarnings: earnings,
+      classesCompleted: todayAccepted.length,
+      totalClassesToday: todayAll.length,
+      nextClass: nextClassData,
+    };
+  }, [appointments, students, currentInstructor]);
+
+  const rating = 4.8;
 
   const handleToggleChecklist = (id: string) => {
     setChecklistItems(prev =>
@@ -41,19 +87,73 @@ export default function InstructorHomeScreen() {
   };
 
   const handleCall = () => {
-    Alert.alert('Ligar', 'Funcionalidade de chamada será implementada');
+    if (!nextClass?.phone) {
+      Alert.alert('Indisponível', 'Telefone do aluno não cadastrado.');
+      return;
+    }
+    Linking.openURL(`tel:${nextClass.phone}`).catch(() => {
+      Alert.alert('Erro', 'Não foi possível abrir o discador.');
+    });
   };
 
   const handleMessage = () => {
-    Alert.alert('Mensagem', 'Funcionalidade de mensagem será implementada');
+    if (!nextClass?.phone) {
+      Alert.alert('Indisponível', 'Telefone do aluno não cadastrado.');
+      return;
+    }
+    const whatsappUrl = `whatsapp://send?phone=55${nextClass.phone}`;
+    Linking.canOpenURL(whatsappUrl)
+      .then(supported => {
+        if (supported) {
+          Linking.openURL(whatsappUrl);
+        } else {
+          Linking.openURL(`sms:${nextClass.phone}`);
+        }
+      })
+      .catch(() => {
+        Linking.openURL(`sms:${nextClass.phone}`).catch(() => {
+          Alert.alert('Erro', 'Não foi possível abrir o app de mensagens.');
+        });
+      });
   };
 
   const handleNavigate = () => {
-    Alert.alert('Navegar', 'Abrindo navegação no mapa...');
+    if (!nextClass?.address) return;
+    const address = encodeURIComponent(nextClass.address);
+    const url = Platform.select({
+      ios: `maps://app?daddr=${address}`,
+      android: `google.navigation:q=${address}`,
+      default: `https://www.google.com/maps/search/?api=1&query=${address}`,
+    });
+    if (url) {
+      Linking.openURL(url).catch(() => {
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${address}`).catch(() => {
+          Alert.alert('Erro', 'Não foi possível abrir o mapa.');
+        });
+      });
+    }
   };
 
   const handleStartClass = () => {
-    Alert.alert('Iniciar Aula', 'Aula iniciada com sucesso!');
+    if (!nextClass) return;
+    if (classStarted) {
+      Alert.alert('Aula em andamento', 'A aula já foi iniciada.');
+      return;
+    }
+    Alert.alert(
+      'Iniciar Aula',
+      `Deseja iniciar a aula com ${nextClass.studentName}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Iniciar',
+          onPress: () => {
+            setClassStarted(true);
+            Alert.alert('Aula Iniciada', `Aula com ${nextClass.studentName} iniciada com sucesso!`);
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -90,7 +190,7 @@ export default function InstructorHomeScreen() {
           iconBgColor={Colors.light.infoLight}
           label="Aulas"
           value={`${classesCompleted}/${totalClassesToday}`}
-          progress={classesCompleted / totalClassesToday}
+          progress={totalClassesToday > 0 ? classesCompleted / totalClassesToday : 0}
         />
         <StatsCard
           icon={Star}
@@ -102,19 +202,21 @@ export default function InstructorHomeScreen() {
       </View>
 
       {/* Next Class */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Próxima Aula</Text>
-        <NextClassCard
-          studentName={nextClass.studentName}
-          studentAvatar={nextClass.studentAvatar}
-          classNumber={nextClass.classNumber}
-          address={nextClass.address}
-          onCall={handleCall}
-          onMessage={handleMessage}
-          onNavigate={handleNavigate}
-          onStartClass={handleStartClass}
-        />
-      </View>
+      {nextClass && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Próxima Aula</Text>
+          <NextClassCard
+            studentName={nextClass.studentName}
+            studentAvatar={nextClass.studentAvatar}
+            classNumber={nextClass.classNumber}
+            address={nextClass.address}
+            onCall={handleCall}
+            onMessage={handleMessage}
+            onNavigate={handleNavigate}
+            onStartClass={handleStartClass}
+          />
+        </View>
+      )}
 
       {/* Daily Checklist */}
       <View style={styles.section}>

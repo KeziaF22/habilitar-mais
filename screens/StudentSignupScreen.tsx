@@ -39,7 +39,7 @@ export interface StudentSignupData {
 }
 
 interface StudentSignupScreenProps {
-  onSignupComplete: (data: StudentSignupData) => void;
+  onSignupComplete: (data: StudentSignupData) => Promise<void>;
   onBack: () => void;
 }
 
@@ -74,61 +74,67 @@ export default function StudentSignupScreen({ onSignupComplete, onBack }: Studen
     setBirthDate(formatted);
   };
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!name.trim()) {
-      Alert.alert('Campo obrigatorio', 'Por favor, informe seu nome completo.');
+      Alert.alert('Campo obrigatório', 'Por favor, informe seu nome completo.');
       return;
     }
 
     const cleanedCpf = cleanCPF(cpf);
     if (!cleanedCpf) {
-      Alert.alert('Campo obrigatorio', 'Por favor, informe seu CPF.');
+      Alert.alert('Campo obrigatório', 'Por favor, informe seu CPF.');
       return;
     }
     if (!isValidCPF(cleanedCpf)) {
-      setCpfError('CPF invalido. Verifique os digitos informados.');
+      setCpfError('CPF inválido. Verifique os dígitos informados.');
       return;
     }
 
     if (!birthDate || birthDate.length < 10) {
-      Alert.alert('Campo obrigatorio', 'Por favor, informe sua data de nascimento completa.');
+      Alert.alert('Campo obrigatório', 'Por favor, informe sua data de nascimento completa.');
       return;
     }
 
     const phoneCleaned = phone.replace(/\D/g, '');
     if (!phoneCleaned || phoneCleaned.length < 10) {
-      Alert.alert('Campo obrigatorio', 'Por favor, informe um telefone celular valido.');
+      Alert.alert('Campo obrigatório', 'Por favor, informe um telefone celular válido.');
       return;
     }
 
     if (!email.trim()) {
-      Alert.alert('Campo obrigatorio', 'Por favor, informe seu e-mail.');
+      Alert.alert('Campo obrigatório', 'Por favor, informe seu e-mail.');
       return;
     }
 
     if (!password) {
-      Alert.alert('Campo obrigatorio', 'Por favor, crie uma senha.');
+      Alert.alert('Campo obrigatório', 'Por favor, crie uma senha.');
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Senha fraca', 'A senha deve ter no minimo 8 caracteres.');
+      Alert.alert('Senha fraca', 'A senha deve ter no mínimo 8 caracteres.');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Erro', 'As senhas nao coincidem.');
+      Alert.alert('Erro', 'As senhas não coincidem.');
       return;
     }
 
     setIsLoading(true);
-    onSignupComplete({
-      name: name.trim(),
-      cpf: cleanedCpf,
-      birthDate,
-      phone: phoneCleaned,
-      email: email.trim(),
-      password,
-    });
-    setIsLoading(false);
+    try {
+      await onSignupComplete({
+        name: name.trim(),
+        cpf: cleanedCpf,
+        birthDate,
+        phone: phoneCleaned,
+        email: email.trim(),
+        password,
+      });
+    } catch (error) {
+      console.error('Erro no cadastro:', error);
+      Alert.alert('Erro', 'Não foi possível criar sua conta. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -164,7 +170,7 @@ export default function StudentSignupScreen({ onSignupComplete, onBack }: Studen
           {/* Signup Card */}
           <View style={styles.signupCard}>
             <Text style={styles.cardTitle}>Dados do Aluno</Text>
-            <Text style={styles.cardSubtitle}>Preencha seus dados para comecar</Text>
+            <Text style={styles.cardSubtitle}>Preencha seus dados para começar</Text>
 
             {/* Name Input */}
             <View style={styles.inputGroup}>
@@ -259,7 +265,7 @@ export default function StudentSignupScreen({ onSignupComplete, onBack }: Studen
                 <Lock size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Minimo 8 caracteres"
+                  placeholder="Mínimo 8 caracteres"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -314,9 +320,9 @@ export default function StudentSignupScreen({ onSignupComplete, onBack }: Studen
 
             {/* Login Link */}
             <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Ja tem uma conta?</Text>
+              <Text style={styles.loginText}>Já tem uma conta?</Text>
               <TouchableOpacity onPress={onBack}>
-                <Text style={styles.loginLink}> Faca login</Text>
+                <Text style={styles.loginLink}> Faça login</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -63,6 +63,15 @@ export async function getUserByCpf(cpf: string): Promise<UserRow | null> {
   return userWithCpf || null;
 }
 
+export async function updateUserPassword(email: string, newPasswordHash: string): Promise<boolean> {
+  const db = await getDatabase();
+  const result = await db.runAsync(
+    'UPDATE users SET password_hash = ? WHERE email = ?',
+    [newPasswordHash, email]
+  );
+  return result.changes > 0;
+}
+
 export async function updateUserRole(
   userId: string,
   role: 'student' | 'instructor',

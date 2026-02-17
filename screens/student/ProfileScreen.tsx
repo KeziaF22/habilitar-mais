@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar, Edit2, LogOut, Mail, MapPin, Phone, Star, Trash2, User } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Edit2, Home, LogOut, Mail, MapPin, Phone, Star, Trash2, User } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import Colors from '@/constants/Colors';
 
@@ -10,6 +10,7 @@ export default function ProfileScreen() {
     currentStudent,
     updateStudentInfo,
     savedAddresses,
+    addSavedAddress,
     removeSavedAddress,
     appointments,
     instructors,
@@ -21,6 +22,11 @@ export default function ProfileScreen() {
   const [editedName, setEditedName] = useState(currentStudent.name);
   const [editedEmail, setEditedEmail] = useState(currentStudent.email || '');
   const [editedPhone, setEditedPhone] = useState(currentStudent.phone || '');
+
+  const [showAddAddress, setShowAddAddress] = useState(false);
+  const [newLabel, setNewLabel] = useState('');
+  const [newStreet, setNewStreet] = useState('');
+  const [newNeighborhood, setNewNeighborhood] = useState('');
 
   const handleSaveProfile = () => {
     updateStudentInfo({
@@ -52,6 +58,24 @@ export default function ProfileScreen() {
         },
       ]
     );
+  };
+
+  const handleAddAddress = () => {
+    const label = newLabel.trim();
+    const street = newStreet.trim();
+    const neighborhood = newNeighborhood.trim();
+
+    if (!label || !street || !neighborhood) {
+      Alert.alert('Campos obrigatórios', 'Preencha todos os campos para salvar o endereço.');
+      return;
+    }
+
+    addSavedAddress({ label, street, neighborhood });
+    setNewLabel('');
+    setNewStreet('');
+    setNewNeighborhood('');
+    setShowAddAddress(false);
+    Alert.alert('Sucesso', 'Endereço adicionado com sucesso!');
   };
 
   const handleLogout = () => {
@@ -194,7 +218,7 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Endereços Salvos</Text>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')}
+            onPress={() => setShowAddAddress(true)}
           >
             <Text style={styles.addButtonText}>+ Adicionar</Text>
           </TouchableOpacity>
@@ -222,6 +246,76 @@ export default function ProfileScreen() {
         <Text style={styles.logoutButtonText}>Sair</Text>
       </TouchableOpacity>
     </ScrollView>
+
+      {/* Add Address Modal */}
+      <Modal
+        visible={showAddAddress}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAddAddress(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlayTouchable}
+            activeOpacity={1}
+            onPress={() => setShowAddAddress(false)}
+          />
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowAddAddress(false)}>
+                <ArrowLeft size={24} color={Colors.light.textPrimary} />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Novo Endereço</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            {/* Form */}
+            <View style={styles.modalForm}>
+              <View style={styles.modalInputGroup}>
+                <Home size={20} color={Colors.light.textSecondary} />
+                <TextInput
+                  style={styles.modalInput}
+                  value={newLabel}
+                  onChangeText={setNewLabel}
+                  placeholder="Apelido (ex: Casa, Trabalho)"
+                  placeholderTextColor={Colors.light.textTertiary}
+                />
+              </View>
+
+              <View style={styles.modalInputGroup}>
+                <MapPin size={20} color={Colors.light.textSecondary} />
+                <TextInput
+                  style={styles.modalInput}
+                  value={newStreet}
+                  onChangeText={setNewStreet}
+                  placeholder="Rua / Endereço"
+                  placeholderTextColor={Colors.light.textTertiary}
+                />
+              </View>
+
+              <View style={styles.modalInputGroup}>
+                <MapPin size={20} color={Colors.light.textSecondary} />
+                <TextInput
+                  style={styles.modalInput}
+                  value={newNeighborhood}
+                  onChangeText={setNewNeighborhood}
+                  placeholder="Bairro"
+                  placeholderTextColor={Colors.light.textTertiary}
+                />
+              </View>
+            </View>
+
+            {/* Save Button */}
+            <TouchableOpacity style={styles.modalSaveButton} onPress={handleAddAddress}>
+              <Text style={styles.modalSaveButtonText}>Salvar Endereço</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -450,5 +544,61 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: Colors.light.error,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalOverlayTouchable: {
+    flex: 1,
+  },
+  modalContent: {
+    backgroundColor: Colors.light.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+    paddingTop: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.light.textPrimary,
+  },
+  modalForm: {
+    gap: 12,
+    marginBottom: 24,
+  },
+  modalInputGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  modalInput: {
+    flex: 1,
+    fontSize: 16,
+    color: Colors.light.textPrimary,
+  },
+  modalSaveButton: {
+    backgroundColor: Colors.light.brand,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalSaveButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.light.surface,
   },
 });

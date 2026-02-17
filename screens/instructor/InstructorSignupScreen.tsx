@@ -24,6 +24,8 @@ import {
   FileText,
   Briefcase
 } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import Colors from '@/constants/Colors';
 import ProgressBar from '@/components/ProgressBar';
 import DocumentUpload from '@/components/DocumentUpload';
@@ -48,6 +50,7 @@ export interface InstructorSignupData {
   experienceText: string;
   workType: 'autonomo' | 'cfc';
   // RF-IN-04
+  vehicleType: 'Carro' | 'Moto' | 'Caminhão' | 'Ônibus' | 'Articulado';
   brand: string;
   carModel: string;
   year: string;
@@ -64,11 +67,19 @@ export interface InstructorSignupData {
 }
 
 interface InstructorSignupScreenProps {
-  onComplete?: (data: InstructorSignupData) => void;
+  onComplete?: (data: InstructorSignupData) => Promise<void>;
   onBack?: () => void;
 }
 
 const CNH_CATEGORIES = ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'AE'];
+
+const VEHICLE_TYPES = [
+  { value: 'Carro', label: 'Carro (B)' },
+  { value: 'Moto', label: 'Moto (A)' },
+  { value: 'Caminhão', label: 'Caminhão (C)' },
+  { value: 'Ônibus', label: 'Ônibus (D)' },
+  { value: 'Articulado', label: 'Articulado (E)' },
+] as const;
 
 export default function InstructorSignupScreen({ onComplete, onBack }: InstructorSignupScreenProps) {
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -94,7 +105,8 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
   const [experienceText, setExperienceText] = useState('');
   const [workType, setWorkType] = useState<'autonomo' | 'cfc' | null>(null);
 
-  // Step 3 - RF-IN-04: Dados do Veiculo
+  // Step 3 - RF-IN-04: Dados do Veículo
+  const [vehicleType, setVehicleType] = useState<'Carro' | 'Moto' | 'Caminhão' | 'Ônibus' | 'Articulado' | null>(null);
   const [brand, setBrand] = useState('');
   const [carModel, setCarModel] = useState('');
   const [year, setYear] = useState('');
@@ -103,11 +115,13 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
   const [hasDualControls, setHasDualControls] = useState(false);
   const [hasInsurance, setHasInsurance] = useState(false);
 
-  // Step 4 - RF-IN-05 + RF-IN-06: Area de Atuacao + Preco
+  // Step 4 - RF-IN-05 + RF-IN-06: Área de Atuação + Preço
   const [city, setCity] = useState('');
   const [neighborhoods, setNeighborhoods] = useState('');
   const [actionRadius, setActionRadius] = useState('');
   const [pricePerHour, setPricePerHour] = useState('');
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Step 5 - RF-IN-03: Documentos
   const [cnhFrontUploaded, setCnhFrontUploaded] = useState(false);
@@ -137,51 +151,105 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
     setter(formatted);
   };
 
-  const handleDocumentUpload = (setter: (v: boolean) => void) => {
-    Alert.alert(
-      'Upload de Documento',
-      'Formatos aceitos: JPG, PNG, PDF.\nFuncionalidade de upload sera implementada. Por enquanto, marcando como enviado.',
-      [{ text: 'OK', onPress: () => setter(true) }]
-    );
+  const handleDocumentUpload = (setter: (v: boolean) => void, type: 'photo' | 'pdf') => {
+    if (type === 'photo') {
+      Alert.alert(
+        'Selecionar Foto',
+        'Como deseja adicionar a foto?',
+        [
+          {
+            text: 'Câmera',
+            onPress: async () => {
+              const { status } = await ImagePicker.requestCameraPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert('Permissão necessária', 'Precisamos de acesso à câmera para tirar a foto.');
+                return;
+              }
+              const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ['images'],
+                quality: 0.8,
+                allowsEditing: true,
+              });
+              if (!result.canceled) {
+                setter(true);
+              }
+            },
+          },
+          {
+            text: 'Galeria',
+            onPress: async () => {
+              const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria para selecionar a foto.');
+                return;
+              }
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                quality: 0.8,
+                allowsEditing: true,
+              });
+              if (!result.canceled) {
+                setter(true);
+              }
+            },
+          },
+          { text: 'Cancelar', style: 'cancel' },
+        ]
+      );
+    } else {
+      (async () => {
+        try {
+          const result = await DocumentPicker.getDocumentAsync({
+            type: ['application/pdf', 'image/jpeg', 'image/png'],
+            copyToCacheDirectory: true,
+          });
+          if (!result.canceled) {
+            setter(true);
+          }
+        } catch {
+          Alert.alert('Erro', 'Não foi possível selecionar o documento.');
+        }
+      })();
+    }
   };
 
   const validateStep1 = (): boolean => {
     if (!name.trim()) {
-      Alert.alert('Campo obrigatorio', 'Informe seu nome completo.');
+      Alert.alert('Campo obrigatório', 'Informe seu nome completo.');
       return false;
     }
     const cleanedCpf = cleanCPF(cpf);
     if (!cleanedCpf) {
-      Alert.alert('Campo obrigatorio', 'Informe seu CPF.');
+      Alert.alert('Campo obrigatório', 'Informe seu CPF.');
       return false;
     }
     if (!isValidCPF(cleanedCpf)) {
-      setCpfError('CPF invalido. Verifique os digitos informados.');
+      setCpfError('CPF inválido. Verifique os dígitos informados.');
       return false;
     }
     if (!birthDate || birthDate.length < 10) {
-      Alert.alert('Campo obrigatorio', 'Informe sua data de nascimento completa.');
+      Alert.alert('Campo obrigatório', 'Informe sua data de nascimento completa.');
       return false;
     }
     const phoneCleaned = phone.replace(/\D/g, '');
     if (!phoneCleaned || phoneCleaned.length < 10) {
-      Alert.alert('Campo obrigatorio', 'Informe um telefone valido.');
+      Alert.alert('Campo obrigatório', 'Informe um telefone válido.');
       return false;
     }
     if (!email.trim()) {
-      Alert.alert('Campo obrigatorio', 'Informe seu e-mail.');
+      Alert.alert('Campo obrigatório', 'Informe seu e-mail.');
       return false;
     }
     if (!password) {
-      Alert.alert('Campo obrigatorio', 'Crie uma senha.');
+      Alert.alert('Campo obrigatório', 'Crie uma senha.');
       return false;
     }
     if (password.length < 8) {
-      Alert.alert('Senha fraca', 'A senha deve ter no minimo 8 caracteres.');
+      Alert.alert('Senha fraca', 'A senha deve ter no mínimo 8 caracteres.');
       return false;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Erro', 'As senhas nao coincidem.');
+      Alert.alert('Erro', 'As senhas não coincidem.');
       return false;
     }
     return true;
@@ -189,47 +257,51 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
 
   const validateStep2 = (): boolean => {
     if (!cnhNumber.trim()) {
-      Alert.alert('Campo obrigatorio', 'Informe o numero da CNH.');
+      Alert.alert('Campo obrigatório', 'Informe o número da CNH.');
       return false;
     }
     if (!cnhCategory) {
-      Alert.alert('Campo obrigatorio', 'Selecione a categoria da CNH.');
+      Alert.alert('Campo obrigatório', 'Selecione a categoria da CNH.');
       return false;
     }
     if (!cnhExpiry || cnhExpiry.length < 10) {
-      Alert.alert('Campo obrigatorio', 'Informe a data de validade da CNH.');
+      Alert.alert('Campo obrigatório', 'Informe a data de validade da CNH.');
       return false;
     }
     if (!experienceYears.trim()) {
-      Alert.alert('Campo obrigatorio', 'Informe o tempo de habilitacao.');
+      Alert.alert('Campo obrigatório', 'Informe o tempo de habilitação.');
       return false;
     }
     if (!workType) {
-      Alert.alert('Campo obrigatorio', 'Selecione como voce atua.');
+      Alert.alert('Campo obrigatório', 'Selecione como você atua.');
       return false;
     }
     return true;
   };
 
   const validateStep3 = (): boolean => {
+    if (!vehicleType) {
+      Alert.alert('Campo obrigatório', 'Selecione o tipo de veículo.');
+      return false;
+    }
     if (!brand.trim()) {
-      Alert.alert('Campo obrigatorio', 'Informe a marca do veiculo.');
+      Alert.alert('Campo obrigatório', 'Informe a marca do veículo.');
       return false;
     }
     if (!carModel.trim()) {
-      Alert.alert('Campo obrigatorio', 'Informe o modelo do veiculo.');
+      Alert.alert('Campo obrigatório', 'Informe o modelo do veículo.');
       return false;
     }
     if (!year.trim() || year.length < 4) {
-      Alert.alert('Campo obrigatorio', 'Informe o ano do veiculo.');
+      Alert.alert('Campo obrigatório', 'Informe o ano do veículo.');
       return false;
     }
     if (!plate.trim()) {
-      Alert.alert('Campo obrigatorio', 'Informe a placa do veiculo.');
+      Alert.alert('Campo obrigatório', 'Informe a placa do veículo.');
       return false;
     }
     if (!transmission) {
-      Alert.alert('Campo obrigatorio', 'Selecione o tipo de cambio.');
+      Alert.alert('Campo obrigatório', 'Selecione o tipo de câmbio.');
       return false;
     }
     return true;
@@ -237,24 +309,24 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
 
   const validateStep4 = (): boolean => {
     if (!city.trim()) {
-      Alert.alert('Campo obrigatorio', 'Informe a cidade de atuacao.');
+      Alert.alert('Campo obrigatório', 'Informe a cidade de atuação.');
       return false;
     }
     if (!neighborhoods.trim()) {
-      Alert.alert('Campo obrigatorio', 'Informe os bairros atendidos.');
+      Alert.alert('Campo obrigatório', 'Informe os bairros atendidos.');
       return false;
     }
     if (!actionRadius.trim()) {
-      Alert.alert('Campo obrigatorio', 'Informe o raio de atuacao.');
+      Alert.alert('Campo obrigatório', 'Informe o raio de atuação.');
       return false;
     }
     if (!pricePerHour.trim()) {
-      Alert.alert('Campo obrigatorio', 'Informe o valor da hora-aula.');
+      Alert.alert('Campo obrigatório', 'Informe o valor da hora-aula.');
       return false;
     }
     const price = parseFloat(pricePerHour.replace(',', '.'));
     if (isNaN(price) || price < MINIMUM_PRICE) {
-      Alert.alert('Valor invalido', `O valor minimo da hora-aula e R$ ${MINIMUM_PRICE},00.`);
+      Alert.alert('Valor inválido', `O valor mínimo da hora-aula é R$ ${MINIMUM_PRICE},00.`);
       return false;
     }
     return true;
@@ -262,29 +334,29 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
 
   const validateStep5 = (): boolean => {
     if (!cnhFrontUploaded || !cnhBackUploaded) {
-      Alert.alert('Documento obrigatorio', 'Envie a CNH (frente e verso).');
+      Alert.alert('Documento obrigatório', 'Envie a CNH (frente e verso).');
       return false;
     }
     if (!criminalRecordUploaded) {
-      Alert.alert('Documento obrigatorio', 'Envie a certidao negativa de antecedentes.');
+      Alert.alert('Documento obrigatório', 'Envie a certidão negativa de antecedentes.');
       return false;
     }
     if (!vehicleDocUploaded) {
-      Alert.alert('Documento obrigatorio', 'Envie o documento do veiculo.');
+      Alert.alert('Documento obrigatório', 'Envie o documento do veículo.');
       return false;
     }
     if (!vehiclePhotoUploaded) {
-      Alert.alert('Documento obrigatorio', 'Envie a foto do veiculo.');
+      Alert.alert('Documento obrigatório', 'Envie a foto do veículo.');
       return false;
     }
     if (!residenceProofUploaded) {
-      Alert.alert('Documento obrigatorio', 'Envie o comprovante de residencia.');
+      Alert.alert('Documento obrigatório', 'Envie o comprovante de residência.');
       return false;
     }
     return true;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === 1 && validateStep1()) {
       setCurrentStep(2);
     } else if (currentStep === 2 && validateStep2()) {
@@ -295,32 +367,41 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
       setCurrentStep(5);
     } else if (currentStep === 5 && validateStep5()) {
       if (onComplete) {
-        onComplete({
-          name: name.trim(),
-          cpf: cleanCPF(cpf),
-          birthDate,
-          phone: phone.replace(/\D/g, ''),
-          email: email.trim(),
-          password,
-          cnhNumber: cnhNumber.trim(),
-          cnhCategory,
-          cnhExpiry,
-          experienceYears: experienceYears.trim(),
-          instructorRegistration: instructorRegistration.trim(),
-          experienceText: experienceText.trim(),
-          workType: workType!,
-          brand: brand.trim(),
-          carModel: carModel.trim(),
-          year: year.trim(),
-          plate: plate.trim().toUpperCase(),
-          transmission: transmission!,
-          hasDualControls,
-          hasInsurance,
-          city: city.trim(),
-          neighborhoods: neighborhoods.trim(),
-          actionRadius: actionRadius.trim(),
-          pricePerHour: pricePerHour.trim(),
-        });
+        setIsSubmitting(true);
+        try {
+          await onComplete({
+            name: name.trim(),
+            cpf: cleanCPF(cpf),
+            birthDate,
+            phone: phone.replace(/\D/g, ''),
+            email: email.trim(),
+            password,
+            cnhNumber: cnhNumber.trim(),
+            cnhCategory,
+            cnhExpiry,
+            experienceYears: experienceYears.trim(),
+            instructorRegistration: instructorRegistration.trim(),
+            experienceText: experienceText.trim(),
+            workType: workType!,
+            vehicleType: vehicleType!,
+            brand: brand.trim(),
+            carModel: carModel.trim(),
+            year: year.trim(),
+            plate: plate.trim().toUpperCase(),
+            transmission: transmission!,
+            hasDualControls,
+            hasInsurance,
+            city: city.trim(),
+            neighborhoods: neighborhoods.trim(),
+            actionRadius: actionRadius.trim(),
+            pricePerHour: pricePerHour.trim(),
+          });
+        } catch (error) {
+          console.error('Erro no cadastro:', error);
+          Alert.alert('Erro', 'Não foi possível criar sua conta. Tente novamente.');
+        } finally {
+          setIsSubmitting(false);
+        }
       }
     }
   };
@@ -400,7 +481,7 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
       <View style={styles.passwordContainer}>
         <TextInput
           style={styles.passwordInput}
-          placeholder="Minimo 8 caracteres"
+          placeholder="Mínimo 8 caracteres"
           value={password}
           onChangeText={setPassword}
           secureTextEntry={!showPassword}
@@ -445,10 +526,10 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
         <Text style={styles.sectionTitle}>Dados Profissionais</Text>
       </View>
 
-      <Text style={styles.label}>Numero da CNH *</Text>
+      <Text style={styles.label}>Número da CNH *</Text>
       <TextInput
         style={styles.input}
-        placeholder="Digite o numero da CNH"
+        placeholder="Digite o número da CNH"
         value={cnhNumber}
         onChangeText={setCnhNumber}
         keyboardType="numeric"
@@ -481,7 +562,7 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
         placeholderTextColor={Colors.light.textTertiary}
       />
 
-      <Text style={styles.label}>Tempo de habilitacao (anos) *</Text>
+      <Text style={styles.label}>Tempo de habilitação (anos) *</Text>
       <TextInput
         style={styles.input}
         placeholder="Ex: 5"
@@ -492,19 +573,19 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
         placeholderTextColor={Colors.light.textTertiary}
       />
 
-      <Text style={styles.label}>Numero do registro de instrutor</Text>
+      <Text style={styles.label}>Número do registro de instrutor</Text>
       <TextInput
         style={styles.input}
-        placeholder="Se aplicavel"
+        placeholder="Se aplicável"
         value={instructorRegistration}
         onChangeText={setInstructorRegistration}
         placeholderTextColor={Colors.light.textTertiary}
       />
 
-      <Text style={styles.label}>Experiencia</Text>
+      <Text style={styles.label}>Experiência</Text>
       <TextInput
         style={[styles.input, styles.textArea]}
-        placeholder="Descreva sua experiencia como instrutor..."
+        placeholder="Descreva sua experiência como instrutor..."
         value={experienceText}
         onChangeText={setExperienceText}
         multiline
@@ -520,7 +601,7 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
           onPress={() => setWorkType('autonomo')}
         >
           <Text style={[styles.workTypeButtonText, workType === 'autonomo' && styles.workTypeButtonTextActive]}>
-            Autonomo
+            Autônomo
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -539,7 +620,22 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
     <View style={styles.stepContent}>
       <View style={styles.sectionHeader}>
         <Car size={20} color={Colors.light.primary} />
-        <Text style={styles.sectionTitle}>Dados do Veiculo</Text>
+        <Text style={styles.sectionTitle}>Dados do Veículo</Text>
+      </View>
+
+      <Text style={styles.label}>Tipo de Veículo *</Text>
+      <View style={styles.categoryGrid}>
+        {VEHICLE_TYPES.map((vt) => (
+          <TouchableOpacity
+            key={vt.value}
+            style={[styles.categoryChip, vehicleType === vt.value && styles.categoryChipActive]}
+            onPress={() => setVehicleType(vt.value)}
+          >
+            <Text style={[styles.categoryChipText, vehicleType === vt.value && styles.categoryChipTextActive]}>
+              {vt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <Text style={styles.label}>Marca *</Text>
@@ -584,7 +680,7 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
         placeholderTextColor={Colors.light.textTertiary}
       />
 
-      <Text style={styles.label}>Tipo de cambio *</Text>
+      <Text style={styles.label}>Tipo de câmbio *</Text>
       <View style={styles.transmissionButtons}>
         <TouchableOpacity
           style={[styles.transmissionButton, transmission === 'Manual' && styles.transmissionButtonActive]}
@@ -599,7 +695,7 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
           onPress={() => setTransmission('Auto')}
         >
           <Text style={[styles.transmissionButtonText, transmission === 'Auto' && styles.transmissionButtonTextActive]}>
-            Automatico
+            Automático
           </Text>
         </TouchableOpacity>
       </View>
@@ -630,7 +726,7 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
     <View style={styles.stepContent}>
       <View style={styles.sectionHeader}>
         <MapPin size={20} color={Colors.light.primary} />
-        <Text style={styles.sectionTitle}>Area de Atuacao</Text>
+        <Text style={styles.sectionTitle}>Área de Atuação</Text>
       </View>
 
       <Text style={styles.label}>Cidade *</Text>
@@ -646,7 +742,7 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
       <Text style={styles.label}>Bairros atendidos *</Text>
       <TextInput
         style={[styles.input, styles.textArea]}
-        placeholder="Ex: Centro, Adrianopolis, Aleixo, Flores..."
+        placeholder="Ex: Centro, Adrianópolis, Aleixo, Flores..."
         value={neighborhoods}
         onChangeText={setNeighborhoods}
         multiline
@@ -655,7 +751,7 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
         placeholderTextColor={Colors.light.textTertiary}
       />
 
-      <Text style={styles.label}>Raio de atuacao (km) *</Text>
+      <Text style={styles.label}>Raio de atuação (km) *</Text>
       <TextInput
         style={styles.input}
         placeholder="Ex: 15"
@@ -673,10 +769,10 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
       </View>
 
       <Text style={styles.priceHint}>
-        Valor minimo permitido pela plataforma: R$ {MINIMUM_PRICE},00
+        Valor mínimo permitido pela plataforma: R$ {MINIMUM_PRICE},00
       </Text>
 
-      <Text style={styles.label}>Preco por hora (R$) *</Text>
+      <Text style={styles.label}>Preço por hora (R$) *</Text>
       <TextInput
         style={styles.input}
         placeholder={`Ex: ${MINIMUM_PRICE}`}
@@ -701,70 +797,70 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
 
       <DocumentUpload
         title="CNH - Frente"
-        description="Foto legivel da frente da CNH"
+        description="Foto legível da frente da CNH"
         type="photo"
         uploaded={cnhFrontUploaded}
-        onPress={() => handleDocumentUpload(setCnhFrontUploaded)}
+        onPress={() => handleDocumentUpload(setCnhFrontUploaded, 'photo')}
       />
 
       <View style={styles.docSpacer} />
 
       <DocumentUpload
         title="CNH - Verso"
-        description="Foto legivel do verso da CNH"
+        description="Foto legível do verso da CNH"
         type="photo"
         uploaded={cnhBackUploaded}
-        onPress={() => handleDocumentUpload(setCnhBackUploaded)}
+        onPress={() => handleDocumentUpload(setCnhBackUploaded, 'photo')}
       />
 
       <View style={styles.docSpacer} />
 
       <DocumentUpload
         title="Certificado de Instrutor"
-        description="Se aplicavel - foto ou PDF do certificado"
+        description="Se aplicável - foto ou PDF do certificado"
         type="pdf"
         uploaded={certificateUploaded}
-        onPress={() => handleDocumentUpload(setCertificateUploaded)}
+        onPress={() => handleDocumentUpload(setCertificateUploaded, 'pdf')}
       />
 
       <View style={styles.docSpacer} />
 
       <DocumentUpload
-        title="Certidao Negativa de Antecedentes"
-        description="Documento obrigatorio"
+        title="Certidão Negativa de Antecedentes"
+        description="Documento obrigatório"
         type="pdf"
         uploaded={criminalRecordUploaded}
-        onPress={() => handleDocumentUpload(setCriminalRecordUploaded)}
+        onPress={() => handleDocumentUpload(setCriminalRecordUploaded, 'pdf')}
       />
 
       <View style={styles.docSpacer} />
 
       <DocumentUpload
-        title="Documento do Veiculo (CRLV)"
-        description="Foto ou PDF do documento do veiculo"
+        title="Documento do Veículo (CRLV)"
+        description="Foto ou PDF do documento do veículo"
         type="pdf"
         uploaded={vehicleDocUploaded}
-        onPress={() => handleDocumentUpload(setVehicleDocUploaded)}
+        onPress={() => handleDocumentUpload(setVehicleDocUploaded, 'pdf')}
       />
 
       <View style={styles.docSpacer} />
 
       <DocumentUpload
-        title="Foto do Veiculo"
-        description="Foto do veiculo que sera utilizado nas aulas"
+        title="Foto do Veículo"
+        description="Foto do veículo que será utilizado nas aulas"
         type="photo"
         uploaded={vehiclePhotoUploaded}
-        onPress={() => handleDocumentUpload(setVehiclePhotoUploaded)}
+        onPress={() => handleDocumentUpload(setVehiclePhotoUploaded, 'photo')}
       />
 
       <View style={styles.docSpacer} />
 
       <DocumentUpload
-        title="Comprovante de Residencia"
-        description="Conta de luz, agua ou outro comprovante recente"
+        title="Comprovante de Residência"
+        description="Conta de luz, água ou outro comprovante recente"
         type="pdf"
         uploaded={residenceProofUploaded}
-        onPress={() => handleDocumentUpload(setResidenceProofUploaded)}
+        onPress={() => handleDocumentUpload(setResidenceProofUploaded, 'pdf')}
       />
     </View>
   );
@@ -783,17 +879,17 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
   const stepTitles: Record<Step, string> = {
     1: 'Dados Pessoais',
     2: 'Dados Profissionais',
-    3: 'Seu Veiculo',
-    4: 'Area e Preco',
+    3: 'Seu Veículo',
+    4: 'Área e Preço',
     5: 'Documentos',
   };
 
   const buttonTexts: Record<Step, string> = {
-    1: 'Proximo: Dados Profissionais',
-    2: 'Proximo: Veiculo',
-    3: 'Proximo: Area e Preco',
-    4: 'Proximo: Documentos',
-    5: 'Enviar para Analise',
+    1: 'Próximo: Dados Profissionais',
+    2: 'Próximo: Veículo',
+    3: 'Próximo: Área e Preço',
+    4: 'Próximo: Documentos',
+    5: 'Enviar para Análise',
   };
 
   return (
@@ -833,11 +929,14 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
         {/* Next Button */}
         <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.nextButton, currentStep === 5 && styles.submitButton]}
+            style={[styles.nextButton, currentStep === 5 && styles.submitButton, isSubmitting && styles.buttonDisabled]}
             onPress={handleNext}
             activeOpacity={0.8}
+            disabled={isSubmitting}
           >
-            <Text style={styles.nextButtonText}>{buttonTexts[currentStep]}</Text>
+            <Text style={styles.nextButtonText}>
+              {isSubmitting ? 'Enviando...' : buttonTexts[currentStep]}
+            </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -1085,6 +1184,9 @@ const styles = StyleSheet.create({
   submitButton: {
     backgroundColor: Colors.light.success,
     shadowColor: Colors.light.success,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   nextButtonText: {
     fontSize: 17,

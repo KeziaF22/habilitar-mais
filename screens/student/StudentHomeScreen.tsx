@@ -26,6 +26,7 @@ export default function StudentHomeScreen({ navigation }: Props) {
   const [filter, setFilter] = useState<Filter>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [priceFilter, setPriceFilter] = useState<number | null>(null);
+  const [vehicleFilter, setVehicleFilter] = useState<string>('All');
   const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
 
   const filteredInstructors = useMemo(() => {
@@ -43,12 +44,16 @@ export default function StudentHomeScreen({ navigation }: Props) {
       result = result.filter((i) => i.transmission === filter);
     }
 
+    if (vehicleFilter !== 'All') {
+      result = result.filter((i) => (i.vehicleType || 'Carro') === vehicleFilter);
+    }
+
     if (priceFilter) {
       result = result.filter((i) => i.pricePerHour <= priceFilter);
     }
 
     return result;
-  }, [searchQuery, filter, priceFilter, instructors]);
+  }, [searchQuery, filter, vehicleFilter, priceFilter, instructors]);
 
   // Compute map focus coordinate based on search query matching a neighborhood
   const mapFocusCoordinate = useMemo((): [number, number] | null => {
@@ -79,6 +84,7 @@ export default function StudentHomeScreen({ navigation }: Props) {
 
   const clearFilters = () => {
     setFilter('All');
+    setVehicleFilter('All');
     setPriceFilter(null);
     setSearchQuery('');
   };
@@ -137,7 +143,24 @@ export default function StudentHomeScreen({ navigation }: Props) {
           </View>
         )}
 
-        {/* Filters */}
+        {/* Vehicle Type Filters */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
+          <View style={styles.filtersContainer}>
+            {['All', 'Carro', 'Moto', 'Caminhão', 'Ônibus', 'Articulado'].map((vt) => (
+              <TouchableOpacity
+                key={vt}
+                style={[styles.filterButton, vehicleFilter === vt && styles.filterButtonActive]}
+                onPress={() => setVehicleFilter(vehicleFilter === vt ? 'All' : vt)}
+              >
+                <Text style={[styles.filterButtonText, vehicleFilter === vt && styles.filterButtonTextActive]}>
+                  {vt === 'All' ? 'Todos' : vt}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+
+        {/* Transmission & Price Filters */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
           <View style={styles.filtersContainer}>
             <TouchableOpacity

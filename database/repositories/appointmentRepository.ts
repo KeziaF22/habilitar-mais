@@ -31,7 +31,7 @@ export async function addAppointment(appointment: Appointment): Promise<void> {
 
 export async function updateAppointmentStatus(
   id: string,
-  status: 'Aceita' | 'Recusada'
+  status: 'Aceita' | 'Recusada' | 'Cancelada'
 ): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('UPDATE appointments SET status = ? WHERE id = ?', [status, id]);

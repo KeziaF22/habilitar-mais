@@ -1,6 +1,6 @@
 import { SQLiteDatabase } from 'expo-sqlite';
 
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 const CREATE_TABLES = `
 CREATE TABLE IF NOT EXISTS instructors (
@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS instructors (
   name TEXT NOT NULL,
   car TEXT NOT NULL,
   carImage TEXT NOT NULL,
+  vehicleType TEXT NOT NULL DEFAULT 'Carro',
   rating REAL NOT NULL DEFAULT 0,
   pricePerHour REAL NOT NULL,
   transmission TEXT NOT NULL CHECK (transmission IN ('Manual', 'Auto')),
@@ -56,7 +57,7 @@ CREATE TABLE IF NOT EXISTS appointments (
   date TEXT NOT NULL,
   time TEXT NOT NULL,
   location TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'Pendente' CHECK (status IN ('Pendente', 'Aceita', 'Recusada')),
+  status TEXT NOT NULL DEFAULT 'Pendente' CHECK (status IN ('Pendente', 'Aceita', 'Recusada', 'Cancelada')),
   price REAL NOT NULL,
   address TEXT,
   paymentMethod TEXT,
@@ -173,6 +174,17 @@ export async function initializeSchema(db: SQLiteDatabase): Promise<void> {
       } catch {
         // Column may already exist, ignore
       }
+    }
+  }
+
+  // Migration v3 -> v4: add vehicleType to instructors
+  if (currentVersion >= 1 && currentVersion < 4) {
+    try {
+      await db.execAsync(
+        "ALTER TABLE instructors ADD COLUMN vehicleType TEXT NOT NULL DEFAULT 'Carro';"
+      );
+    } catch {
+      // Column may already exist, ignore
     }
   }
 

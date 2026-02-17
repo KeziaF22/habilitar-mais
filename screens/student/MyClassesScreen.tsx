@@ -1,17 +1,18 @@
 import React, { useMemo, useState } from 'react';
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { format, parseISO, isPast } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, MapPin } from 'lucide-react-native';
+import { Calendar, MapPin, CreditCard, ChevronDown, ChevronUp, XCircle } from 'lucide-react-native';
 import { useAuth, Appointment } from '@/context/AuthContext';
 import Colors from '@/constants/Colors';
 
 type TabType = 'upcoming' | 'history';
 
 export default function MyClassesScreen() {
-  const { appointments, currentStudent, instructors } = useAuth();
+  const { appointments, currentStudent, instructors, cancelAppointment } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const myAppointments = useMemo(() => {
     return appointments.filter((apt) => apt.studentId === currentStudent.id);
@@ -31,7 +32,7 @@ export default function MyClassesScreen() {
 
     const history = myAppointments.filter((apt) => {
       const aptDate = parseISO(apt.date);
-      return aptDate < today || apt.status === 'Recusada';
+      return aptDate < today || apt.status === 'Recusada' || apt.status === 'Cancelada';
     });
 
     return { upcomingAppointments: upcoming, historyAppointments: history };
@@ -45,9 +46,33 @@ export default function MyClassesScreen() {
         return { backgroundColor: '#C8E6C9', color: '#2E7D32' };
       case 'Recusada':
         return { backgroundColor: '#FFCDD2', color: '#C62828' };
+      case 'Cancelada':
+        return { backgroundColor: '#FFCDD2', color: '#C62828' };
       default:
         return { backgroundColor: '#E0E0E0', color: '#616161' };
     }
+  };
+
+  const handleCancel = (appointment: Appointment) => {
+    Alert.alert(
+      'Cancelar Aula',
+      'Tem certeza que deseja cancelar esta aula? Esta ação não pode ser desfeita.',
+      [
+        { text: 'Não', style: 'cancel' },
+        {
+          text: 'Sim, cancelar',
+          style: 'destructive',
+          onPress: () => {
+            cancelAppointment(appointment.id);
+            setExpandedId(null);
+          },
+        },
+      ]
+    );
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
   };
 
   const renderAppointment = ({ item }: { item: Appointment }) => {
@@ -56,6 +81,8 @@ export default function MyClassesScreen() {
 
     const badgeStyle = getStatusBadgeStyle(item.status);
     const formattedDate = format(parseISO(item.date), "dd 'de' MMMM", { locale: ptBR });
+    const isExpanded = expandedId === item.id;
+    const canCancel = item.status === 'Pendente' || item.status === 'Aceita';
 
     return (
       <View style={styles.appointmentCard}>
@@ -78,15 +105,82 @@ export default function MyClassesScreen() {
 
         <View style={styles.detailRow}>
           <MapPin size={18} color={Colors.light.textSecondary} />
-          <Text style={styles.detailText} numberOfLines={1}>
+          <Text style={styles.detailText} numberOfLines={isExpanded ? undefined : 1}>
             {item.location}
           </Text>
         </View>
 
+        {/* Expanded details */}
+        {isExpanded && (
+          <View style={styles.expandedSection}>
+            <View style={styles.divider} />
+
+            {item.paymentMethod && (
+              <View style={styles.expandedRow}>
+                <CreditCard size={16} color={Colors.light.textSecondary} />
+                <Text style={styles.expandedLabel}>Pagamento:</Text>
+                <Text style={styles.expandedValue}>{item.paymentMethod}</Text>
+              </View>
+            )}
+
+            <View style={styles.expandedRow}>
+              <Text style={styles.expandedLabel}>Valor da aula:</Text>
+              <Text style={styles.expandedValue}>R$ {item.price.toFixed(2)}</Text>
+            </View>
+
+            {item.serviceFee != null && item.serviceFee > 0 && (
+              <View style={styles.expandedRow}>
+                <Text style={styles.expandedLabel}>Taxa de serviço:</Text>
+                <Text style={styles.expandedValue}>R$ {item.serviceFee.toFixed(2)}</Text>
+              </View>
+            )}
+
+            {item.discount != null && item.discount > 0 && (
+              <View style={styles.expandedRow}>
+                <Text style={styles.expandedLabel}>Desconto:</Text>
+                <Text style={[styles.expandedValue, { color: Colors.light.success }]}>
+                  - R$ {item.discount.toFixed(2)}
+                </Text>
+              </View>
+            )}
+
+            {item.totalPrice != null && (
+              <View style={[styles.expandedRow, styles.totalRow]}>
+                <Text style={styles.totalLabel}>Total:</Text>
+                <Text style={styles.totalValue}>R$ {item.totalPrice.toFixed(2)}</Text>
+              </View>
+            )}
+
+            {/* Cancel button */}
+            {canCancel && (
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => handleCancel(item)}
+                activeOpacity={0.7}
+              >
+                <XCircle size={18} color="#C62828" />
+                <Text style={styles.cancelButtonText}>Cancelar Aula</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         <View style={styles.cardFooter}>
-          <Text style={styles.priceText}>R$ {item.price.toFixed(2)}</Text>
-          <TouchableOpacity style={styles.detailButton}>
-            <Text style={styles.detailButtonText}>Ver Detalhes</Text>
+          <Text style={styles.priceText}>
+            R$ {(item.totalPrice ?? item.price).toFixed(2)}
+          </Text>
+          <TouchableOpacity
+            style={styles.detailButton}
+            onPress={() => toggleExpand(item.id)}
+          >
+            <Text style={styles.detailButtonText}>
+              {isExpanded ? 'Ocultar' : 'Ver Detalhes'}
+            </Text>
+            {isExpanded ? (
+              <ChevronUp size={16} color={Colors.light.surface} />
+            ) : (
+              <ChevronDown size={16} color={Colors.light.surface} />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -251,6 +345,64 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     flex: 1,
   },
+  expandedSection: {
+    marginTop: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.light.border,
+    marginBottom: 12,
+  },
+  expandedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  expandedLabel: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+  },
+  expandedValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.textPrimary,
+    marginLeft: 'auto',
+  },
+  totalRow: {
+    marginTop: 4,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.border,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.light.textPrimary,
+  },
+  totalValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.light.brand,
+    marginLeft: 'auto',
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#FFCDD2',
+    backgroundColor: '#FFF5F5',
+  },
+  cancelButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#C62828',
+  },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -266,8 +418,11 @@ const styles = StyleSheet.create({
     color: Colors.light.brand,
   },
   detailButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: Colors.light.brand,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
   },

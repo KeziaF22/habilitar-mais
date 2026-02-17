@@ -32,17 +32,17 @@ export default function StudentProfileCompletionScreen({
 
         <Text style={styles.title}>Tudo pronto, {firstName}!</Text>
         <Text style={styles.subtitle}>
-          Sua conta de aluno foi criada com sucesso. Agora voce pode buscar instrutores proximos e agendar suas aulas.
+          Sua conta de aluno foi criada com sucesso. Agora você pode buscar instrutores próximos e agendar suas aulas.
         </Text>
 
         <View style={styles.featureList}>
           <View style={styles.featureItem}>
             <Search size={20} color="rgba(255,255,255,0.9)" />
-            <Text style={styles.featureText}>Busque instrutores na sua regiao</Text>
+            <Text style={styles.featureText}>Busque instrutores na sua região</Text>
           </View>
           <View style={styles.featureItem}>
             <AppCarIcon size={20} useGradient={false} color="rgba(255,255,255,0.9)" />
-            <Text style={styles.featureText}>Compare precos e avaliacoes</Text>
+            <Text style={styles.featureText}>Compare preços e avaliações</Text>
           </View>
         </View>
 
@@ -51,7 +51,7 @@ export default function StudentProfileCompletionScreen({
           onPress={onComplete}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>Comecar a Buscar</Text>
+          <Text style={styles.buttonText}>Começar a Buscar</Text>
         </TouchableOpacity>
       </View>
     </LinearGradient>

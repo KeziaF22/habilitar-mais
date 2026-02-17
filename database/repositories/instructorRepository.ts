@@ -7,6 +7,7 @@ function rowToInstructor(row: any): Instructor {
     name: row.name,
     car: row.car,
     carImage: row.carImage,
+    vehicleType: row.vehicleType || 'Carro',
     rating: row.rating,
     pricePerHour: row.pricePerHour,
     transmission: row.transmission,
@@ -40,15 +41,16 @@ export async function getInstructorById(id: string): Promise<Instructor | null> 
 export async function addInstructor(instructor: Instructor): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
-    `INSERT INTO instructors (id, name, car, carImage, rating, pricePerHour,
+    `INSERT INTO instructors (id, name, car, carImage, vehicleType, rating, pricePerHour,
      transmission, bio, reviews, availability, profileImage, coverImage,
      specialties, isAvailable, location, latitude, longitude)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       instructor.id,
       instructor.name,
       instructor.car,
       instructor.carImage,
+      instructor.vehicleType || 'Carro',
       instructor.rating,
       instructor.pricePerHour,
       instructor.transmission,
@@ -76,6 +78,7 @@ export async function updateInstructor(
 
   if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name); }
   if (updates.car !== undefined) { fields.push('car = ?'); values.push(updates.car); }
+  if (updates.vehicleType !== undefined) { fields.push('vehicleType = ?'); values.push(updates.vehicleType); }
   if (updates.bio !== undefined) { fields.push('bio = ?'); values.push(updates.bio); }
   if (updates.transmission !== undefined) { fields.push('transmission = ?'); values.push(updates.transmission); }
   if (updates.pricePerHour !== undefined) { fields.push('pricePerHour = ?'); values.push(updates.pricePerHour); }

@@ -74,7 +74,7 @@ export default function InstructorDetailScreen({ navigation, route }: Props) {
         <View style={styles.vehicleRow}>
           <Car size={20} color={Colors.light.brand} />
           <Text style={styles.vehicleText}>
-            {instructor.car} ({transmissionLabel})
+            {instructor.vehicleType || 'Carro'} - {instructor.car} ({transmissionLabel})
           </Text>
         </View>
 

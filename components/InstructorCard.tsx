@@ -13,7 +13,7 @@ interface InstructorCardProps {
 
 export default function InstructorCard({ instructor, onPress }: InstructorCardProps) {
   const transmissionLabel = instructor.transmission === 'Auto' ? 'Automático' : 'Manual';
-  const categoryLabel = 'Carro'; // Pode ser expandido depois para Moto, etc
+  const categoryLabel = instructor.vehicleType || 'Carro';
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>

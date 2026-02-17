@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GraduationCap } from 'lucide-react-native';
+import { GraduationCap, ChevronLeft } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import Colors from '@/constants/Colors';
 import OnboardingIllustration from '@/components/OnboardingIllustration';
@@ -11,9 +11,10 @@ const { width, height } = Dimensions.get('window');
 
 interface OnboardingScreenProps {
   onRoleSelected?: (role: 'student' | 'instructor') => void;
+  onBack?: () => void;
 }
 
-export default function OnboardingScreen({ onRoleSelected }: OnboardingScreenProps) {
+export default function OnboardingScreen({ onRoleSelected, onBack }: OnboardingScreenProps) {
   const { setUserRole } = useAuth();
 
   return (
@@ -23,6 +24,14 @@ export default function OnboardingScreen({ onRoleSelected }: OnboardingScreenPro
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
+      {/* Back Button */}
+      {onBack && (
+        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <ChevronLeft size={24} color={Colors.light.surface} />
+          <Text style={styles.backButtonText}>Voltar</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Header Section */}
       <View style={styles.headerSection}>
         <View style={styles.logoContainer}>
@@ -86,6 +95,20 @@ export default function OnboardingScreen({ onRoleSelected }: OnboardingScreenPro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 10,
+    gap: 4,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: Colors.light.surface,
+    fontWeight: '600',
   },
 
   // Header Section

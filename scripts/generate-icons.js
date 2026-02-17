@@ -94,32 +94,42 @@ ${renderPaths(carPaths)}
 </svg>`;
 
 // ============================================================
-// 3. Splash Icon (600x700) - car + "Habilitar+" text for iOS
-// Full logo center (260,144) → canvas (300, 250). Scale: 520/280 ≈ 1.86
+// 3. Splash Icon (600x700) - car icon + text for iOS
+// Car only, centered higher. Text as real <text> elements below.
+// Car center (250,120) → canvas (300, 210). Scale: 520/260 = 2.0
 // ============================================================
+const splashCarS = 2.0;
+const splashCarTX = 300 - 250 * splashCarS;  // -200
+const splashCarTY = 210 - 120 * splashCarS;  // -30
+
 const splashIconSvg = `<svg width="600" height="700" viewBox="0 0 600 700" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="300" cy="220" r="180" fill="white" opacity="0.05"/>
-  <g transform="translate(-183.6, -17.8) scale(1.86)">
+  <circle cx="300" cy="200" r="180" fill="white" opacity="0.05"/>
+  <g transform="translate(${splashCarTX}, ${splashCarTY}) scale(${splashCarS})">
     <g transform="${INNER}" fill="white" stroke="none">
 ${renderPaths(carPaths)}
-${renderPaths(textPaths)}
     </g>
   </g>
-  <text x="300" y="470" font-family="Arial, Helvetica, sans-serif" font-weight="500" font-size="20" fill="white" opacity="0.9" text-anchor="middle" letter-spacing="5">AUTOESCOLA DIGITAL</text>
+  <text x="300" y="400" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="56" fill="white" text-anchor="middle" letter-spacing="2">Habilitar+</text>
+  <text x="300" y="450" font-family="Arial, Helvetica, sans-serif" font-weight="600" font-size="22" fill="white" text-anchor="middle" letter-spacing="6">AUTOESCOLA DIGITAL</text>
 </svg>`;
 
 // ============================================================
 // 4. Splash Android Icon (288x288) - transparent bg, for Android 12+
-// Full logo center (260,144) → canvas (144, 120). Scale: 250/280 ≈ 0.89
+// Car only + text as real <text> elements.
+// Car center (250,120) → canvas (144, 95). Scale: 0.95
 // ============================================================
+const androidCarS = 0.95;
+const androidCarTX = 144 - 250 * androidCarS;  // -93.5
+const androidCarTY = 95 - 120 * androidCarS;    // -19
+
 const splashAndroidIconSvg = `<svg width="288" height="288" viewBox="0 0 288 288" xmlns="http://www.w3.org/2000/svg">
-  <g transform="translate(-87.4, -8.2) scale(0.89)">
+  <g transform="translate(${androidCarTX}, ${androidCarTY}) scale(${androidCarS})">
     <g transform="${INNER}" fill="white" stroke="none">
 ${renderPaths(carPaths)}
-${renderPaths(textPaths)}
     </g>
   </g>
-  <text x="144" y="220" font-family="Arial, Helvetica, sans-serif" font-weight="500" font-size="11" fill="white" opacity="0.9" text-anchor="middle" letter-spacing="4">AUTOESCOLA DIGITAL</text>
+  <text x="144" y="195" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="32" fill="white" text-anchor="middle" letter-spacing="1">Habilitar+</text>
+  <text x="144" y="222" font-family="Arial, Helvetica, sans-serif" font-weight="600" font-size="13" fill="white" text-anchor="middle" letter-spacing="3">AUTOESCOLA DIGITAL</text>
 </svg>`;
 
 // ============================================================

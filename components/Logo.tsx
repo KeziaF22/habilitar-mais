@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
-import Svg, { Circle, Path, Rect, Defs, LinearGradient, Stop, G, Text as SvgText, ClipPath } from 'react-native-svg';
+import Svg, { Circle, Path, G, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
+import { CAR_PATHS, SVG_INNER_TRANSFORM } from '../constants/logoPaths';
 
 interface LogoProps {
   width?: number;
@@ -22,24 +23,13 @@ export default function Logo({
               <Stop offset="0%" stopColor="#2563EB" stopOpacity="1" />
               <Stop offset="100%" stopColor="#06B6D4" stopOpacity="1" />
             </LinearGradient>
-            <ClipPath id="iconClip">
-              <Rect x="0" y="0" width="100" height="36" />
-              <Rect x="0" y="40" width="100" height="4" />
-              <Rect x="0" y="48" width="100" height="52" />
-            </ClipPath>
           </Defs>
           <Circle cx="50" cy="50" r="48" fill="url(#iconGrad)" />
-          {/* Car silhouette with speed line cutouts */}
-          <G transform="translate(10, 20)">
-            <Path
-              d="M18 44 L22 30 C24 26 28 22 32 22 L54 22 C58 22 62 26 64 30 L70 40 L72 44 C72 46 70 48 68 48 L20 48 C18 48 16 46 18 44 Z"
-              fill="white"
-              clipPath="url(#iconClip)"
-            />
-            <Path d="M4 30 L18 30" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
-            <Path d="M8 38 L22 38" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
-            <Circle cx="60" cy="49" r="9" fill="white" />
-            <Circle cx="30" cy="49" r="9" fill="white" />
+          {/* Real car from original SVG - centered in circle (50,50) */}
+          <G transform="translate(-7, 23) scale(0.228)">
+            <G transform={SVG_INNER_TRANSFORM} fill="white" stroke="none">
+              {CAR_PATHS.map((d, i) => <Path key={i} d={d} />)}
+            </G>
           </G>
           {/* Plus badge */}
           <G transform="translate(62, 8)">
@@ -59,27 +49,16 @@ export default function Logo({
             <Stop offset="0%" stopColor="#2563EB" stopOpacity="1" />
             <Stop offset="100%" stopColor="#06B6D4" stopOpacity="1" />
           </LinearGradient>
-          <ClipPath id="logoClip">
-            <Rect x="0" y="0" width="100" height="34" />
-            <Rect x="0" y="38" width="100" height="4" />
-            <Rect x="0" y="46" width="100" height="54" />
-          </ClipPath>
         </Defs>
 
         {/* Icon circle */}
         <Circle cx="46" cy="50" r="42" fill="url(#logoGrad)" />
 
-        {/* Car with cutout speed lines */}
-        <G transform="translate(12, 22)">
-          <Path
-            d="M16 40 L20 28 C22 24 26 20 30 20 L50 20 C54 20 58 24 60 28 L66 36 L68 40 C68 42 66 44 64 44 L18 44 C16 44 14 42 16 40 Z"
-            fill="white"
-            clipPath="url(#logoClip)"
-          />
-          <Path d="M4 28 L16 28" stroke="white" strokeWidth="3" strokeLinecap="round" />
-          <Path d="M7 36 L20 36" stroke="white" strokeWidth="3" strokeLinecap="round" />
-          <Circle cx="56" cy="45" r="8" fill="white" />
-          <Circle cx="28" cy="45" r="8" fill="white" />
+        {/* Real car from original SVG - centered in circle (46,50) */}
+        <G transform="translate(-4, 26) scale(0.2)">
+          <G transform={SVG_INNER_TRANSFORM} fill="white" stroke="none">
+            {CAR_PATHS.map((d, i) => <Path key={i} d={d} />)}
+          </G>
         </G>
 
         {/* Plus badge */}

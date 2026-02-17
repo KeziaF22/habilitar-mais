@@ -272,6 +272,7 @@ function RootNavigator() {
               setAuthScreen('signup_instructor');
             }
           }}
+          onBack={() => setAuthScreen('login')}
         />
       );
     }

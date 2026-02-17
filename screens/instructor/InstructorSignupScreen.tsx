@@ -333,26 +333,7 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
   };
 
   const validateStep5 = (): boolean => {
-    if (!cnhFrontUploaded || !cnhBackUploaded) {
-      Alert.alert('Documento obrigatório', 'Envie a CNH (frente e verso).');
-      return false;
-    }
-    if (!criminalRecordUploaded) {
-      Alert.alert('Documento obrigatório', 'Envie a certidão negativa de antecedentes.');
-      return false;
-    }
-    if (!vehicleDocUploaded) {
-      Alert.alert('Documento obrigatório', 'Envie o documento do veículo.');
-      return false;
-    }
-    if (!vehiclePhotoUploaded) {
-      Alert.alert('Documento obrigatório', 'Envie a foto do veículo.');
-      return false;
-    }
-    if (!residenceProofUploaded) {
-      Alert.alert('Documento obrigatório', 'Envie o comprovante de residência.');
-      return false;
-    }
+    // Documents are optional - instructor can complete registration and upload later
     return true;
   };
 
@@ -792,7 +773,7 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
       </View>
 
       <Text style={styles.docHint}>
-        Formatos aceitos: JPG, PNG, PDF
+        Documentos opcionais — você pode enviar depois.{'\n'}Formatos aceitos: JPG, PNG, PDF
       </Text>
 
       <DocumentUpload
@@ -889,7 +870,7 @@ export default function InstructorSignupScreen({ onComplete, onBack }: Instructo
     2: 'Próximo: Veículo',
     3: 'Próximo: Área e Preço',
     4: 'Próximo: Documentos',
-    5: 'Enviar para Análise',
+    5: 'Finalizar Cadastro',
   };
 
   return (

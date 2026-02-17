@@ -218,6 +218,18 @@ function RootNavigator() {
     completeTutorial,
   } = useAuth();
   const [authScreen, setAuthScreen] = React.useState<AuthScreen>('login');
+  const hadUserRole = React.useRef(false);
+
+  // Track when user has been logged in
+  if (userRole) {
+    hadUserRole.current = true;
+  }
+
+  // Synchronously reset to login when user logs out (before render)
+  if (!userRole && hadUserRole.current && authScreen !== 'login') {
+    hadUserRole.current = false;
+    setAuthScreen('login');
+  }
 
   if (isLoading) {
     return (

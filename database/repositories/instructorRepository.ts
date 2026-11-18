@@ -38,13 +38,13 @@ export async function getInstructorById(id: string): Promise<Instructor | null> 
   return row ? rowToInstructor(row) : null;
 }
 
-export async function addInstructor(instructor: Instructor): Promise<void> {
+export async function addInstructor(instructor: Instructor, cpf?: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
     `INSERT INTO instructors (id, name, car, carImage, vehicleType, rating, pricePerHour,
      transmission, bio, reviews, availability, profileImage, coverImage,
-     specialties, isAvailable, location, latitude, longitude)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     specialties, isAvailable, location, latitude, longitude, cpf)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       instructor.id,
       instructor.name,
@@ -64,6 +64,7 @@ export async function addInstructor(instructor: Instructor): Promise<void> {
       instructor.location,
       instructor.coordinates.latitude,
       instructor.coordinates.longitude,
+      cpf ?? null,
     ]
   );
 }

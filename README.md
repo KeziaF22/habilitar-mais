@@ -83,7 +83,7 @@ habilitar-mais/
 │       ├── InstructorAgendaScreen.tsx  # Agenda
 │       ├── InstructorWalletScreen.tsx  # Carteira
 │       ├── InstructorProfileScreen.tsx # Perfil
-│       └── InstructorSignupScreen.tsx  # Cadastro (5 etapas)
+│       └── InstructorSignupScreen.tsx  # Cadastro (2 etapas: conta e aulas)
 ├── components/                  # Componentes reutilizaveis
 ├── constants/
 │   └── Colors.ts                # Paleta de cores do app

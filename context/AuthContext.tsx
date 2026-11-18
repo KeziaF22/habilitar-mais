@@ -357,7 +357,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       rating: 0,
       pricePerHour: price,
       transmission: data.transmission,
-      bio: data.experienceText || '',
+      bio: '',
       reviews: [],
       availability: [],
       profileImage: '',
@@ -369,7 +369,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     // Create instructor FIRST (before user) to satisfy foreign key constraint
-    await InstructorRepo.addInstructor(newInstructor);
+    await InstructorRepo.addInstructor(newInstructor, data.cpf);
 
     await UserRepo.createUser({
       id: userId,
@@ -391,8 +391,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await SettingsRepo.setSetting('userRole', 'instructor');
 
     Alert.alert(
-      'Cadastro enviado!',
-      'Seus documentos serao analisados. Voce recebera um retorno em ate 48 horas.'
+      'Cadastro concluído!',
+      'Sua conta de instrutor foi criada com sucesso.'
     );
   }, []);
 

@@ -304,7 +304,7 @@ function RootNavigator() {
       );
     }
 
-    // Step 2b: Instructor signup form (5 steps)
+    // Step 2b: Instructor signup form (2 steps)
     if (authScreen === 'signup_instructor') {
       return (
         <InstructorSignupScreen
